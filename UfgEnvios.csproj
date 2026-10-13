@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationTitle>UFG ENVIOS - Simulador de rutas</ApplicationTitle>
+    <RootNamespace>UfgEnvios</RootNamespace>
+    <AssemblyName>UfgEnvios</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="imagen ejemplo.jpg" />
+    <Compile Remove="Tests/**/*.cs" />
+  </ItemGroup>
+
+</Project>

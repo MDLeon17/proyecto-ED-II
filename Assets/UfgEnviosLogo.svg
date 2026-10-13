@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-labelledby="title desc">
+  <title id="title">UFG ENVIOS</title>
+  <desc id="desc">Un paquete geométrico con una estela de ruta y un punto de origen coral.</desc>
+  <rect x="4" y="8" width="64" height="64" rx="16" fill="#19B49E"/>
+  <path d="M19 31 36 22 53 31v19L36 59 19 50Z" fill="#127F75" stroke="#fff" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="m19 31 17 9 17-9M36 40v19" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M11 54c4 0 6-1 8-4" fill="none" stroke="#FFB194" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="10" cy="54" r="3" fill="#FFB194"/>
+  <text x="84" y="42" font-family="Segoe UI, Arial, sans-serif" font-size="31" font-weight="750" fill="#122D38">UFG</text>
+  <text x="84" y="64" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="#087F72">ENVIOS</text>
+</svg>
