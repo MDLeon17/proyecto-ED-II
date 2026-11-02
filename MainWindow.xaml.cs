@@ -24,6 +24,7 @@ public partial class MainWindow : Window
 
     private readonly LogisticsGraph _graph = new();
     private readonly TablaHash _pedidos = new();
+    private Pedido? _pedidoActual;
     private readonly ObservableCollection<string> _trackingLogs = new();
     private readonly MapSurface _singleMap;
     private readonly MapSurface _bfsMap;
@@ -41,6 +42,34 @@ public partial class MainWindow : Window
     private static readonly Color OriginColor = Color.FromRgb(42, 117, 181);
     private static readonly Color DestinationColor = Color.FromRgb(160, 96, 187);
     private static readonly Color RoadColor = Color.FromRgb(124, 150, 151);
+
+
+    private void ListPedidos_SelectionChanged(object sender, SelectionChangedEventArgs e)
+{
+    if (!_initialized || _runCts != null) return;
+    if (ListPedidos.SelectedItem is not Pedido elegido) return;
+
+    var pedido = _pedidos.Buscar(elegido.Guia);
+    if (pedido == null) return;
+
+    _pedidoActual = pedido;
+    TxtTrackingNumber.Text = pedido.Guia;
+    CboOrigin.SelectedItem = _graph.Nodes[pedido.OrigenId];
+    CboDestination.SelectedItem = _graph.Nodes[pedido.DestinoId];
+}
+
+private void MarcarPedidoEntregado()
+{
+    if (_pedidoActual == null || _selectedOrigin == null || _selectedDestination == null) return;
+    // Solo si lo que se despachó es la ruta de ese pedido
+    if (_pedidoActual.OrigenId != _selectedOrigin.Id || _pedidoActual.DestinoId != _selectedDestination.Id) return;
+
+    _pedidoActual.Estado = "Entregado";
+    RefrescarPedidos();
+    AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
+    AddLog($"Comparativa terminada: {report.SummaryHeadline}");
+    AddLog($"Entrega simulada completada en {_selectedDestination.Name}.");
+}
 
     public MainWindow()
     {
@@ -527,7 +556,7 @@ public partial class MainWindow : Window
         OrigenId = _selectedOrigin.Id,
         DestinoId = _selectedDestination.Id
     };
-    if (!_pedidos.Insertar(pedido))
+    if (!_pedidos.Insertar(pedido)) 
     {
         MessageBox.Show("Esa guía ya está registrada. Genera una nueva con el botón ↻.",
                         "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Warning);
