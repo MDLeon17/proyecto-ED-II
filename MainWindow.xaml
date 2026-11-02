@@ -134,7 +134,13 @@
                         <TextBlock Text="Municipio de destino" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
                         <ComboBox x:Name="CboDestination" Style="{StaticResource RouteCombo}" SelectionChanged="CboNodes_SelectionChanged"/>
                         <Button x:Name="BtnSwapPoints" Content="⇄  Intercambiar municipios" Style="{StaticResource SecondaryButton}" Click="BtnSwapPoints_Click" Margin="0,12,0,0"/>
-
+                        <Border Background="#34515A" Height="1" Margin="0,18,0,17"/>
+                        <TextBlock Text="PEDIDOS" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="Nombre del cliente" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtCliente" Height="32" Padding="6,4" Background="White" Foreground="#122D38" BorderThickness="0"/>
+                        <Button x:Name="BtnRegistrarPedido" Content="Registrar pedido" Style="{StaticResource SecondaryButton}" Click="BtnRegistrarPedido_Click" Margin="0,10,0,10"/>
+                        <TextBlock Text="Pedidos registrados" Style="{StaticResource FieldLabel}"/>
+                        <ListBox x:Name="ListPedidos" MinHeight="40" MaxHeight="150" Background="#244650" Foreground="White" BorderThickness="0" FontSize="11"/>
                         <Border Background="#34515A" Height="1" Margin="0,18,0,17"/>
                         <TextBlock Text="MÉTODO DE RECORRIDO" Style="{StaticResource SectionTitle}"/>
                         <RadioButton x:Name="RbBFS" GroupName="RouteAlgorithm" Content="BFS · menos tramos" IsChecked="True" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>

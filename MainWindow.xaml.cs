@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     }
 
     private readonly LogisticsGraph _graph = new();
+    private readonly TablaHash _pedidos = new();
     private readonly ObservableCollection<string> _trackingLogs = new();
     private readonly MapSurface _singleMap;
     private readonly MapSurface _bfsMap;
@@ -503,12 +504,50 @@ public partial class MainWindow : Window
         ScrollTrackingLogs.ScrollToBottom();
     }
 
+    private void BtnRegistrarPedido_Click(object sender, RoutedEventArgs e)
+{
+    if (_selectedOrigin == null || _selectedDestination == null || _selectedOrigin.Id == _selectedDestination.Id)
+    {
+        MessageBox.Show("Elige un origen y un destino distintos antes de registrar el pedido.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
+        return;
+    }
+    var cliente = TxtCliente.Text.Trim();
+    if (cliente == "")
+    {
+        MessageBox.Show("Escribe el nombre del cliente.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
+        return;
+    }
+
+    var pedido = new Pedido
+    {
+        Guia = TxtTrackingNumber.Text,
+        Cliente = cliente,
+        OrigenId = _selectedOrigin.Id,
+        DestinoId = _selectedDestination.Id
+    };
+    if (!_pedidos.Insertar(pedido))
+    {
+        MessageBox.Show("Esa guía ya está registrada. Genera una nueva con el botón ↻.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return;
+    }
+
+    TxtCliente.Clear();
+    GenerateTrackingNumber(); // la siguiente guía será otra
+    RefrescarPedidos();
+    AddLog($"Pedido {pedido.Guia} registrado para {pedido.Cliente}.");
+}
+
+private void RefrescarPedidos() => ListPedidos.ItemsSource = _pedidos.ObtenerTodos();
     private void BtnReset_Click(object sender, RoutedEventArgs e)
     {
         _runGeneration++;
         _runCts?.Cancel();
         _runCts = null;
         SetControlsEnabled(true);
+        ListPedidos.IsEnabled = BtnRegistrarPedido.IsEnabled = TxtCliente.IsEnabled = enabled;
         ClearPresentation();
         RenderMaps();
         AddLog("Recorrido limpiado. Selecciona dos municipios para un nuevo envío.");
