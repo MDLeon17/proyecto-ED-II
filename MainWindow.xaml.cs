@@ -67,8 +67,6 @@ private void MarcarPedidoEntregado()
     _pedidoActual.Estado = "Entregado";
     RefrescarPedidos();
     AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
-    AddLog($"Comparativa terminada: {report.SummaryHeadline}");
-    AddLog($"Entrega simulada completada en {_selectedDestination.Name}.");
 }
 
     public MainWindow()
@@ -368,6 +366,7 @@ private void MarcarPedidoEntregado()
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "COMPARATIVA COMPLETADA";
                 AddLog($"Comparativa terminada: {report.SummaryHeadline}");
+                MarcarPedidoEntregado();
             }
             else
             {
@@ -387,6 +386,7 @@ private void MarcarPedidoEntregado()
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "ENTREGA COMPLETADA";
                 AddLog($"Entrega simulada completada en {_selectedDestination.Name}.");
+                MarcarPedidoEntregado();
             }
         }
         catch (OperationCanceledException)
@@ -524,6 +524,7 @@ private void MarcarPedidoEntregado()
         BtnRegenerateTracking.IsEnabled = enabled;
         CboOrigin.IsEnabled = CboDestination.IsEnabled = enabled;
         RbBFS.IsEnabled = RbDFS.IsEnabled = RbCompare.IsEnabled = enabled;
+        ListPedidos.IsEnabled = BtnRegistrarPedido.IsEnabled = TxtCliente.IsEnabled = enabled;
     }
 
     private void AddLog(string message)
@@ -576,7 +577,6 @@ private void RefrescarPedidos() => ListPedidos.ItemsSource = _pedidos.ObtenerTod
         _runCts?.Cancel();
         _runCts = null;
         SetControlsEnabled(true);
-        ListPedidos.IsEnabled = BtnRegistrarPedido.IsEnabled = TxtCliente.IsEnabled = enabled;
         ClearPresentation();
         RenderMaps();
         AddLog("Recorrido limpiado. Selecciona dos municipios para un nuevo envío.");
