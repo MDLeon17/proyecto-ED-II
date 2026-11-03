@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     }
 
     private readonly LogisticsGraph _graph = new();
+    private readonly TablaHash _pedidos = new();
+    private Pedido? _pedidoActual;
     private readonly ObservableCollection<string> _trackingLogs = new();
     private readonly MapSurface _singleMap;
     private readonly MapSurface _bfsMap;
@@ -40,6 +42,32 @@ public partial class MainWindow : Window
     private static readonly Color OriginColor = Color.FromRgb(42, 117, 181);
     private static readonly Color DestinationColor = Color.FromRgb(160, 96, 187);
     private static readonly Color RoadColor = Color.FromRgb(124, 150, 151);
+
+
+    private void ListPedidos_SelectionChanged(object sender, SelectionChangedEventArgs e)
+{
+    if (!_initialized || _runCts != null) return;
+    if (ListPedidos.SelectedItem is not Pedido elegido) return;
+
+    var pedido = _pedidos.Buscar(elegido.Guia);
+    if (pedido == null) return;
+
+    _pedidoActual = pedido;
+    TxtTrackingNumber.Text = pedido.Guia;
+    CboOrigin.SelectedItem = _graph.Nodes[pedido.OrigenId];
+    CboDestination.SelectedItem = _graph.Nodes[pedido.DestinoId];
+}
+
+private void MarcarPedidoEntregado()
+{
+    if (_pedidoActual == null || _selectedOrigin == null || _selectedDestination == null) return;
+    // Solo si lo que se despachó es la ruta de ese pedido
+    if (_pedidoActual.OrigenId != _selectedOrigin.Id || _pedidoActual.DestinoId != _selectedDestination.Id) return;
+
+    _pedidoActual.Estado = "Entregado";
+    RefrescarPedidos();
+    AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
+}
 
     public MainWindow()
     {
@@ -338,6 +366,7 @@ public partial class MainWindow : Window
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "COMPARATIVA COMPLETADA";
                 AddLog($"Comparativa terminada: {report.SummaryHeadline}");
+                MarcarPedidoEntregado();
             }
             else
             {
@@ -357,6 +386,7 @@ public partial class MainWindow : Window
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "ENTREGA COMPLETADA";
                 AddLog($"Entrega simulada completada en {_selectedDestination.Name}.");
+                MarcarPedidoEntregado();
             }
         }
         catch (OperationCanceledException)
@@ -494,6 +524,7 @@ public partial class MainWindow : Window
         BtnRegenerateTracking.IsEnabled = enabled;
         CboOrigin.IsEnabled = CboDestination.IsEnabled = enabled;
         RbBFS.IsEnabled = RbDFS.IsEnabled = RbCompare.IsEnabled = enabled;
+        ListPedidos.IsEnabled = BtnRegistrarPedido.IsEnabled = TxtCliente.IsEnabled = enabled;
     }
 
     private void AddLog(string message)
@@ -503,6 +534,43 @@ public partial class MainWindow : Window
         ScrollTrackingLogs.ScrollToBottom();
     }
 
+    private void BtnRegistrarPedido_Click(object sender, RoutedEventArgs e)
+{
+    if (_selectedOrigin == null || _selectedDestination == null || _selectedOrigin.Id == _selectedDestination.Id)
+    {
+        MessageBox.Show("Elige un origen y un destino distintos antes de registrar el pedido.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
+        return;
+    }
+    var cliente = TxtCliente.Text.Trim();
+    if (cliente == "")
+    {
+        MessageBox.Show("Escribe el nombre del cliente.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
+        return;
+    }
+
+    var pedido = new Pedido
+    {
+        Guia = TxtTrackingNumber.Text,
+        Cliente = cliente,
+        OrigenId = _selectedOrigin.Id,
+        DestinoId = _selectedDestination.Id
+    };
+    if (!_pedidos.Insertar(pedido)) 
+    {
+        MessageBox.Show("Esa guía ya está registrada. Genera una nueva con el botón ↻.",
+                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return;
+    }
+
+    TxtCliente.Clear();
+    GenerateTrackingNumber(); // la siguiente guía será otra
+    RefrescarPedidos();
+    AddLog($"Pedido {pedido.Guia} registrado para {pedido.Cliente}.");
+}
+
+private void RefrescarPedidos() => ListPedidos.ItemsSource = _pedidos.ObtenerTodos();
     private void BtnReset_Click(object sender, RoutedEventArgs e)
     {
         _runGeneration++;
