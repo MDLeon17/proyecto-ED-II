@@ -211,7 +211,7 @@
                                         <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                             <TextBlock Text="{Binding Guia}" FontSize="10"/>
                                             <TextBlock Text=" · " FontSize="10"/>
-                                            <TextBlock Text="{Binding Estado}" FontSize="10"/>
+                                            <TextBlock Text="{Binding EstadoTexto}" FontSize="10"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </DataTemplate>

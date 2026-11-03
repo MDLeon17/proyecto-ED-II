@@ -138,7 +138,7 @@ internal static class Program
             ((ProgressBar)window.FindName("DfsProgress")!).Value != 100)
             throw new Exception("La comparativa en paralelo no terminó correctamente.");
         var delivered = ((ComboBox)window.FindName("ListPedidos")!).Items.Cast<Pedido>().Single();
-        if (delivered.Guia != registeredGuide || delivered.Estado != "Entregado")
+        if (delivered.Guia != registeredGuide || delivered.Estado != EstadoPedido.Entregado)
             throw new Exception("La simulación no actualizó el pedido de la tabla hash.");
         if (args.Length == 2)
         {

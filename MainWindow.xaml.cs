@@ -99,15 +99,16 @@ public partial class MainWindow : Window
         ShowSection(false);
     }
 
-    private void MarcarPedidoEntregado()
+    // Cambia el estado del pedido cargado en el simulador y actualiza la tabla.
+    private void CambiarEstadoPedido(EstadoPedido nuevo)
     {
         if (_pedidoActual == null || _selectedOrigin == null || _selectedDestination == null) return;
-        // Solo si lo que se despachó es la ruta de ese pedido.
+        // Solo si lo que se despacha es la ruta de ese pedido.
         if (_pedidoActual.OrigenId != _selectedOrigin.Id || _pedidoActual.DestinoId != _selectedDestination.Id) return;
 
-        _pedidoActual.Estado = "Entregado";
+        _pedidoActual.Estado = nuevo;
         RefrescarPedidos();
-        AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
+        AddLog($"Pedido {_pedidoActual.Guia}: {_pedidoActual.EstadoTexto}.");
     }
 
     public MainWindow()
@@ -406,6 +407,7 @@ public partial class MainWindow : Window
         SetControlsEnabled(false);
         ClearPresentation();
         RenderMaps();
+        CambiarEstadoPedido(EstadoPedido.EnTransito);
 
         try
         {
@@ -427,7 +429,7 @@ public partial class MainWindow : Window
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "COMPARATIVA COMPLETADA";
                 AddLog($"Comparativa terminada: {report.SummaryHeadline}");
-                MarcarPedidoEntregado();
+                CambiarEstadoPedido(EstadoPedido.Entregado);
             }
             else
             {
@@ -447,11 +449,13 @@ public partial class MainWindow : Window
                 cts.Token.ThrowIfCancellationRequested();
                 TxtSystemStatus.Text = "ENTREGA COMPLETADA";
                 AddLog($"Entrega simulada completada en {_selectedDestination.Name}.");
-                MarcarPedidoEntregado();
+                CambiarEstadoPedido(EstadoPedido.Entregado);
             }
         }
         catch (OperationCanceledException)
         {
+            // Aunque "Limpiar recorrido" ya cambió la generación, el pedido vuelve a Registrado.
+            CambiarEstadoPedido(EstadoPedido.Registrado);
             if (generation == _runGeneration)
             {
                 TxtSystemStatus.Text = "SIMULACIÓN DETENIDA";
@@ -663,7 +667,7 @@ public partial class MainWindow : Window
             pedido.Cliente,
             Origen = _graph.Nodes[pedido.OrigenId].Name,
             Destino = _graph.Nodes[pedido.DestinoId].Name,
-            pedido.Estado
+            Estado = pedido.EstadoTexto
         }).ToList();
         TablaPedidos.SelectedValue = selectedGuide;
         TxtPedidosCount.Text = pedidos.Count == 1 ? "1 pedido" : $"{pedidos.Count} pedidos";
