@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private HubNode? _selectedDestination;
     private CancellationTokenSource? _runCts;
     private bool _initialized;
+    private bool _refreshingPedidos;
     private int _runGeneration;
 
     private static readonly Color BfsColor = Color.FromRgb(25, 180, 158);
@@ -44,30 +45,70 @@ public partial class MainWindow : Window
     private static readonly Color RoadColor = Color.FromRgb(124, 150, 151);
 
 
+    private void ShowSection(bool registration)
+    {
+        SimulationView.Visibility = registration ? Visibility.Collapsed : Visibility.Visible;
+        RegistrationView.Visibility = registration ? Visibility.Visible : Visibility.Collapsed;
+        TxtActiveSection.Text = registration ? "Registrar en tabla hash" : "Simular envío";
+        NavRegistration.IsChecked = registration;
+        NavSimulation.IsChecked = !registration;
+        NavigationMenu.IsOpen = false;
+        if (registration) TxtCliente.Focus();
+        else CboOrigin.Focus();
+    }
+
+    private void NavSimulation_Click(object sender, RoutedEventArgs e) => ShowSection(false);
+
+    private void NavRegistration_Click(object sender, RoutedEventArgs e) => ShowSection(true);
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || !NavigationMenu.IsOpen) return;
+        NavigationMenu.IsOpen = false;
+        BtnNavigation.Focus();
+        e.Handled = true;
+    }
+
     private void ListPedidos_SelectionChanged(object sender, SelectionChangedEventArgs e)
-{
-    if (!_initialized || _runCts != null) return;
-    if (ListPedidos.SelectedItem is not Pedido elegido) return;
+    {
+        if (!_initialized || _refreshingPedidos || _runCts != null) return;
+        if (ListPedidos.SelectedItem is not Pedido elegido) return;
 
-    var pedido = _pedidos.Buscar(elegido.Guia);
-    if (pedido == null) return;
+        var pedido = _pedidos.Buscar(elegido.Guia);
+        if (pedido == null) return;
 
-    _pedidoActual = pedido;
-    TxtTrackingNumber.Text = pedido.Guia;
-    CboOrigin.SelectedItem = _graph.Nodes[pedido.OrigenId];
-    CboDestination.SelectedItem = _graph.Nodes[pedido.DestinoId];
-}
+        _pedidoActual = pedido;
+        TxtTrackingNumber.Text = pedido.Guia;
+        CboOrigin.SelectedItem = _graph.Nodes[pedido.OrigenId];
+        CboDestination.SelectedItem = _graph.Nodes[pedido.DestinoId];
+    }
 
-private void MarcarPedidoEntregado()
-{
-    if (_pedidoActual == null || _selectedOrigin == null || _selectedDestination == null) return;
-    // Solo si lo que se despachó es la ruta de ese pedido
-    if (_pedidoActual.OrigenId != _selectedOrigin.Id || _pedidoActual.DestinoId != _selectedDestination.Id) return;
+    private void TablaPedidos_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_initialized) return;
+        BtnSimularPedido.IsEnabled = _runCts == null && TablaPedidos.SelectedValue is string;
+    }
 
-    _pedidoActual.Estado = "Entregado";
-    RefrescarPedidos();
-    AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
-}
+    private void BtnSimularPedido_Click(object sender, RoutedEventArgs e)
+    {
+        if (_runCts != null || TablaPedidos.SelectedValue is not string guia) return;
+        var pedido = _pedidos.Buscar(guia);
+        if (pedido == null) return;
+        ListPedidos.SelectedItem = null;
+        ListPedidos.SelectedItem = pedido;
+        ShowSection(false);
+    }
+
+    private void MarcarPedidoEntregado()
+    {
+        if (_pedidoActual == null || _selectedOrigin == null || _selectedDestination == null) return;
+        // Solo si lo que se despachó es la ruta de ese pedido.
+        if (_pedidoActual.OrigenId != _selectedOrigin.Id || _pedidoActual.DestinoId != _selectedDestination.Id) return;
+
+        _pedidoActual.Estado = "Entregado";
+        RefrescarPedidos();
+        AddLog($"Pedido {_pedidoActual.Guia} marcado como Entregado.");
+    }
 
     public MainWindow()
     {
@@ -93,17 +134,40 @@ private void MarcarPedidoEntregado()
         var municipalities = _graph.Nodes.Values.OrderBy(node => node.Name).ToList();
         CboOrigin.ItemsSource = municipalities;
         CboDestination.ItemsSource = municipalities;
+        CboRegistrationOrigin.ItemsSource = municipalities;
+        CboRegistrationDestination.ItemsSource = municipalities;
         CboOrigin.SelectedItem = _graph.Nodes["QUE"];
+        CboRegistrationOrigin.SelectedItem = _graph.Nodes["QUE"];
         _selectedOrigin = _graph.Nodes["QUE"];
         _initialized = true;
         GenerateTrackingNumber();
+        GenerateRegistrationTrackingNumber();
+        RefrescarPedidos();
         ClearPresentation();
         RenderMaps();
         AddLog("Red preparada: selecciona el destino para simular un envío.");
     }
 
-    private void GenerateTrackingNumber() =>
-        TxtTrackingNumber.Text = $"UFG-{Random.Shared.Next(1000, 10000)}-{Random.Shared.Next(1000, 10000)}-GT";
+    private string CreateTrackingNumber()
+    {
+        string guia;
+        do
+        {
+            guia = $"UFG-{Random.Shared.Next(1000, 10000)}-{Random.Shared.Next(1000, 10000)}-GT";
+        } while (_pedidos.Buscar(guia) != null);
+        return guia;
+    }
+
+    private void GenerateTrackingNumber()
+    {
+        _pedidoActual = null;
+        ListPedidos.SelectedItem = null;
+        TxtTrackingNumber.Text = CreateTrackingNumber();
+    }
+
+    private void GenerateRegistrationTrackingNumber() => TxtRegistrationTrackingNumber.Text = CreateTrackingNumber();
+
+    private void BtnRegenerateRegistrationTracking_Click(object sender, RoutedEventArgs e) => GenerateRegistrationTrackingNumber();
 
     private void BtnRegenerateTracking_Click(object sender, RoutedEventArgs e) => GenerateTrackingNumber();
 
@@ -524,7 +588,8 @@ private void MarcarPedidoEntregado()
         BtnRegenerateTracking.IsEnabled = enabled;
         CboOrigin.IsEnabled = CboDestination.IsEnabled = enabled;
         RbBFS.IsEnabled = RbDFS.IsEnabled = RbCompare.IsEnabled = enabled;
-        ListPedidos.IsEnabled = BtnRegistrarPedido.IsEnabled = TxtCliente.IsEnabled = enabled;
+        ListPedidos.IsEnabled = enabled;
+        BtnSimularPedido.IsEnabled = enabled && TablaPedidos.SelectedValue is string;
     }
 
     private void AddLog(string message)
@@ -535,42 +600,79 @@ private void MarcarPedidoEntregado()
     }
 
     private void BtnRegistrarPedido_Click(object sender, RoutedEventArgs e)
-{
-    if (_selectedOrigin == null || _selectedDestination == null || _selectedOrigin.Id == _selectedDestination.Id)
     {
-        MessageBox.Show("Elige un origen y un destino distintos antes de registrar el pedido.",
-                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
-        return;
-    }
-    var cliente = TxtCliente.Text.Trim();
-    if (cliente == "")
-    {
-        MessageBox.Show("Escribe el nombre del cliente.",
-                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Information);
-        return;
+        var origin = CboRegistrationOrigin.SelectedItem as HubNode;
+        var destination = CboRegistrationDestination.SelectedItem as HubNode;
+        if (origin == null || destination == null || origin.Id == destination.Id)
+        {
+            ShowRegistrationFeedback("Elige un origen y un destino distintos.", false);
+            return;
+        }
+        var cliente = TxtCliente.Text.Trim();
+        if (cliente == "")
+        {
+            ShowRegistrationFeedback("Escribe el nombre del cliente.", false);
+            TxtCliente.Focus();
+            return;
+        }
+
+        var pedido = new Pedido
+        {
+            Guia = TxtRegistrationTrackingNumber.Text,
+            Cliente = cliente,
+            OrigenId = origin.Id,
+            DestinoId = destination.Id
+        };
+        if (!_pedidos.Insertar(pedido))
+        {
+            ShowRegistrationFeedback("Esa guía ya está registrada. Genera una nueva con el botón ↻.", false);
+            return;
+        }
+
+        TxtCliente.Clear();
+        GenerateRegistrationTrackingNumber();
+        RefrescarPedidos();
+        TablaPedidos.SelectedValue = pedido.Guia;
+        ShowRegistrationFeedback($"Pedido {pedido.Guia} registrado para {pedido.Cliente}.", true);
+        AddLog($"Pedido {pedido.Guia} registrado para {pedido.Cliente}.");
     }
 
-    var pedido = new Pedido
+    private void ShowRegistrationFeedback(string message, bool success)
     {
-        Guia = TxtTrackingNumber.Text,
-        Cliente = cliente,
-        OrigenId = _selectedOrigin.Id,
-        DestinoId = _selectedDestination.Id
-    };
-    if (!_pedidos.Insertar(pedido)) 
-    {
-        MessageBox.Show("Esa guía ya está registrada. Genera una nueva con el botón ↻.",
-                        "UFG ENVIOS", MessageBoxButton.OK, MessageBoxImage.Warning);
-        return;
+        TxtRegistrationFeedback.Text = message;
+        TxtRegistrationFeedback.Foreground = new SolidColorBrush(success
+            ? Color.FromRgb(143, 227, 214) : Color.FromRgb(255, 173, 145));
+        TxtRegistrationFeedback.Visibility = Visibility.Visible;
     }
 
-    TxtCliente.Clear();
-    GenerateTrackingNumber(); // la siguiente guía será otra
-    RefrescarPedidos();
-    AddLog($"Pedido {pedido.Guia} registrado para {pedido.Cliente}.");
-}
+    private void RefrescarPedidos()
+    {
+        var selectedGuide = TablaPedidos.SelectedValue as string;
+        var pedidos = _pedidos.ObtenerTodos();
+        _refreshingPedidos = true;
+        try
+        {
+            ListPedidos.SelectedItem = null;
+            ListPedidos.ItemsSource = pedidos;
+            ListPedidos.SelectedItem = _pedidoActual;
+        }
+        finally
+        {
+            _refreshingPedidos = false;
+        }
+        TablaPedidos.ItemsSource = pedidos.Select(pedido => new
+        {
+            pedido.Guia,
+            pedido.Cliente,
+            Origen = _graph.Nodes[pedido.OrigenId].Name,
+            Destino = _graph.Nodes[pedido.DestinoId].Name,
+            pedido.Estado
+        }).ToList();
+        TablaPedidos.SelectedValue = selectedGuide;
+        TxtPedidosCount.Text = pedidos.Count == 1 ? "1 pedido" : $"{pedidos.Count} pedidos";
+        EmptyPedidosState.Visibility = pedidos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
 
-private void RefrescarPedidos() => ListPedidos.ItemsSource = _pedidos.ObtenerTodos();
     private void BtnReset_Click(object sender, RoutedEventArgs e)
     {
         _runGeneration++;

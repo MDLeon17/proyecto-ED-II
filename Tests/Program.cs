@@ -52,6 +52,58 @@ internal static class Program
         Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
             new Action(() => readyFrame.Continue = false));
         Dispatcher.PushFrame(readyFrame);
+        var simulationView = (Grid)window.FindName("SimulationView")!;
+        var registrationView = (Grid)window.FindName("RegistrationView")!;
+        var navigation = (System.Windows.Controls.Primitives.Popup)window.FindName("NavigationMenu")!;
+        var registrationNavigation = (RadioButton)window.FindName("NavRegistration")!;
+        var simulationNavigation = (RadioButton)window.FindName("NavSimulation")!;
+        if (simulationView.Visibility != Visibility.Visible || registrationView.Visibility != Visibility.Collapsed)
+            throw new Exception("La pantalla inicial no es la simulación.");
+        registrationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (registrationView.Visibility != Visibility.Visible || simulationView.Visibility != Visibility.Collapsed ||
+            registrationNavigation.IsChecked != true || navigation.IsOpen)
+            throw new Exception("El menú no abrió el registro de manera independiente.");
+        if (args.Length == 2)
+        {
+            SavePreview(layout, Path.ChangeExtension(args[1], ".registro-vacio.png"));
+            SavePreview((FrameworkElement)navigation.Child, Path.ChangeExtension(args[1], ".menu.png"), 310, 220);
+        }
+        var registrationOrigin = (ComboBox)window.FindName("CboRegistrationOrigin")!;
+        var registrationDestination = (ComboBox)window.FindName("CboRegistrationDestination")!;
+        var client = (TextBox)window.FindName("TxtCliente")!;
+        var register = (Button)window.FindName("BtnRegistrarPedido")!;
+        var orders = (DataGrid)window.FindName("TablaPedidos")!;
+        var orderCount = (TextBlock)window.FindName("TxtPedidosCount")!;
+        var simulatedGuide = (TextBlock)window.FindName("TxtTrackingNumber")!;
+        var registrationGuide = (TextBlock)window.FindName("TxtRegistrationTrackingNumber")!;
+        var initialSimulatedGuide = simulatedGuide.Text;
+        client.Text = "Cliente de prueba";
+        register.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (orders.Items.Count != 0 || orderCount.Text != "0 pedidos")
+            throw new Exception("Se registró un pedido sin destino.");
+        registrationOrigin.SelectedItem = registrationOrigin.Items.Cast<HubNode>().First(node => node.Id == "QUE");
+        registrationDestination.SelectedItem = registrationDestination.Items.Cast<HubNode>().First(node => node.Id == "SAL");
+        var registeredGuide = registrationGuide.Text;
+        register.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (orders.Items.Count != 1 || orderCount.Text != "1 pedido" || simulatedGuide.Text != initialSimulatedGuide ||
+            ((ComboBox)window.FindName("CboDestination")!).SelectedItem != null || registrationGuide.Text == registeredGuide)
+            throw new Exception("El registro no guardó el pedido de forma independiente de la simulación.");
+        client.Text = "Borrador de otro cliente";
+        simulationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        registrationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (client.Text != "Borrador de otro cliente" || registrationDestination.SelectedItem is not HubNode { Id: "SAL" })
+            throw new Exception("La navegación perdió los datos del formulario de registro.");
+        if (args.Length == 2)
+        {
+            SavePreview(layout, Path.ChangeExtension(args[1], ".registro.png"));
+            SavePreview(layout, Path.ChangeExtension(args[1], ".registro-minimo.png"), 1200, 720);
+        }
+        var simulateOrder = (Button)window.FindName("BtnSimularPedido")!;
+        if (!simulateOrder.IsEnabled) throw new Exception("No se habilitó la simulación del pedido registrado.");
+        simulateOrder.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (simulationView.Visibility != Visibility.Visible || registrationView.Visibility != Visibility.Collapsed ||
+            simulatedGuide.Text != registeredGuide || ((ComboBox)window.FindName("CboDestination")!).SelectedItem is not HubNode { Id: "SAL" })
+            throw new Exception("No se cargó el pedido registrado en el menú de simulación.");
         var compare = (RadioButton)window.FindName("RbCompare")!;
         var singleHost = (Grid)window.FindName("SingleMapHost")!;
         var compareHost = (Grid)window.FindName("CompareMapsHost")!;
@@ -85,21 +137,36 @@ internal static class Program
         if (timedOut || ((ProgressBar)window.FindName("BfsProgress")!).Value != 100 ||
             ((ProgressBar)window.FindName("DfsProgress")!).Value != 100)
             throw new Exception("La comparativa en paralelo no terminó correctamente.");
+        var delivered = ((ComboBox)window.FindName("ListPedidos")!).Items.Cast<Pedido>().Single();
+        if (delivered.Guia != registeredGuide || delivered.Estado != "Entregado")
+            throw new Exception("La simulación no actualizó el pedido de la tabla hash.");
         if (args.Length == 2)
         {
-            layout.Measure(new Size(1440, 900));
-            layout.Arrange(new Rect(0, 0, 1440, 900));
-            layout.UpdateLayout();
             if (compare.IsChecked != true)
                 throw new Exception("La opción de comparativa perdió su selección visual.");
-            var snapshot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
-            snapshot.Render(layout);
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(snapshot));
-            using var output = File.Create(args[1]);
-            encoder.Save(output);
+            SavePreview(layout, args[1]);
+            SavePreview(layout, Path.ChangeExtension(args[1], ".simulacion-minimo.png"), 1200, 720);
         }
         window.Close();
-        Console.WriteLine($"Verificados {nodes.Count} contornos y la comparativa BFS/DFS en paralelo.");
+        Console.WriteLine($"Verificados el menú, el registro independiente, el envío de un pedido, {nodes.Count} contornos y la comparativa BFS/DFS en paralelo.");
+    }
+
+    private static void SavePreview(FrameworkElement layout, string path, int width = 1440, int height = 900)
+    {
+        layout.Measure(new Size(width, height));
+        layout.Arrange(new Rect(0, 0, width, height));
+        layout.UpdateLayout();
+        var readyFrame = new DispatcherFrame();
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
+            new Action(() => readyFrame.Continue = false));
+        Dispatcher.PushFrame(readyFrame);
+        layout.UpdateLayout();
+        var snapshot = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        snapshot.Render(layout);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(snapshot));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        using var output = File.Create(path);
+        encoder.Save(output);
     }
 }

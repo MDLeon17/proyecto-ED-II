@@ -4,7 +4,7 @@
         Title="UFG ENVIOS | Simulador de rutas de Quetzaltenango"
         Width="1440" Height="900" MinWidth="1200" MinHeight="720"
         WindowStartupLocation="CenterScreen" Background="#F3F6F6"
-        FontFamily="Segoe UI" FontSize="13">
+        FontFamily="Segoe UI" FontSize="13" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
@@ -96,34 +96,100 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="NavigationOption" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="NavigationCard" Background="Transparent" CornerRadius="8" Padding="14,12">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavigationCard" Property="Background" Value="#244650"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="NavigationCard" Property="Background" Value="#244E55"/>
+                                <Setter Property="Foreground" Value="#8FE3D6"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="NavigationCard" Property="BorderBrush" Value="#8FE3D6"/>
+                                <Setter TargetName="NavigationCard" Property="BorderThickness" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Background="#F3F6F6">
+        <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="#102F39" BorderBrush="#34515A" BorderThickness="0,0,0,1">
+            <Grid Margin="22,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <ToggleButton x:Name="BtnNavigation" Width="44" Height="42" Cursor="Hand"
+                              ToolTip="Abrir menú principal" AutomationProperties.Name="Menú principal">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="HamburgerBackground" Background="#244650" CornerRadius="9">
+                                <Path Data="M 0,0 L 20,0 M 0,7 L 20,7 M 0,14 L 20,14" Stroke="White" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="HamburgerBackground" Property="Background" Value="#32616A"/></Trigger>
+                                <Trigger Property="IsChecked" Value="True"><Setter TargetName="HamburgerBackground" Property="Background" Value="#087F72"/></Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="HamburgerBackground" Property="BorderBrush" Value="#8FE3D6"/><Setter TargetName="HamburgerBackground" Property="BorderThickness" Value="1"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,24,0">
+                    <Border Background="#19B49E" CornerRadius="10" Width="38" Height="38">
+                        <Path Data="M 7,13 L 19,7 L 31,13 L 31,27 L 19,33 L 7,27 Z M 7,13 L 19,19 L 31,13 M 19,19 L 19,33"
+                              Stroke="White" StrokeThickness="2" StrokeLineJoin="Round" Width="38" Height="38"/>
+                    </Border>
+                    <TextBlock Text="UFG ENVIOS" Foreground="White" FontSize="19" FontWeight="Bold" Margin="11,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border Grid.Column="2" BorderBrush="#34515A" BorderThickness="1,0,0,0" Padding="22,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtActiveSection" Text="Simular envío" Foreground="#8FE3D6" FontSize="14" FontWeight="SemiBold"/>
+                </Border>
+                <TextBlock Grid.Column="3" Text="QUETZALTENANGO  ·  ED II" Foreground="#9EB8BE" FontSize="11" VerticalAlignment="Center"/>
+                <Popup x:Name="NavigationMenu" PlacementTarget="{Binding ElementName=BtnNavigation}" Placement="Bottom"
+                       VerticalOffset="10" AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade"
+                       IsOpen="{Binding IsChecked, ElementName=BtnNavigation, Mode=TwoWay}">
+                    <Border Width="310" Background="#102F39" BorderBrush="#34515A" BorderThickness="1" CornerRadius="12" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="MENÚ PRINCIPAL" Style="{StaticResource SectionTitle}" Margin="14,6,0,8"/>
+                            <RadioButton x:Name="NavSimulation" GroupName="MainNavigation" IsChecked="True" Style="{StaticResource NavigationOption}" Click="NavSimulation_Click">
+                                <StackPanel>
+                                    <TextBlock Text="Simular envío" FontWeight="SemiBold" FontSize="14"/>
+                                    <TextBlock Text="Mapa, rutas y seguimiento" Foreground="#BCD0D3" FontSize="11" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavRegistration" GroupName="MainNavigation" Style="{StaticResource NavigationOption}" Click="NavRegistration_Click">
+                                <StackPanel>
+                                    <TextBlock Text="Registrar en tabla hash" FontWeight="SemiBold" FontSize="14"/>
+                                    <TextBlock Text="Clientes y pedidos registrados" Foreground="#BCD0D3" FontSize="11" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </Grid>
+        </Border>
+
+        <Grid x:Name="SimulationView" Grid.Row="1">
         <Grid.ColumnDefinitions><ColumnDefinition Width="334"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Background="#102F39">
             <Grid Margin="22,18,22,14">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <StackPanel Margin="0,0,0,18">
-                    <StackPanel Orientation="Horizontal">
-                        <Border Background="#19B49E" CornerRadius="12" Width="46" Height="46" ToolTip="UFG ENVIOS · paquete en camino">
-                            <Canvas Width="46" Height="46">
-                                <Path Data="M 11,17 L 23,11 L 35,17 L 35,31 L 23,37 L 11,31 Z"
-                                      Stroke="White" StrokeThickness="2.4" StrokeLineJoin="Round" Fill="#127F75"/>
-                                <Path Data="M 11,17 L 23,23 L 35,17 M 23,23 L 23,37"
-                                      Stroke="White" StrokeThickness="2.2" StrokeLineJoin="Round"/>
-                                <Path Data="M 5,34 C 8,34 10,33 11,31" Stroke="#FFB194" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-                                <Ellipse Canvas.Left="3" Canvas.Top="32" Width="4" Height="4" Fill="#FFB194"/>
-                            </Canvas>
-                        </Border>
-                        <StackPanel Margin="11,1,0,0">
-                            <TextBlock Text="UFG ENVIOS" Foreground="White" FontSize="19" FontWeight="Bold"/>
-                            <TextBlock Text="CENTRO DE OPERACIONES" Foreground="#9EB8BE" FontSize="10" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </StackPanel>
-                    <Border Background="#244650" CornerRadius="7" Padding="10,6" Margin="0,16,0,0">
-                        <TextBlock Text="SIMULADOR  /  QUETZALTENANGO" Foreground="#8FE3D6" FontWeight="Bold" FontSize="10"/>
-                    </Border>
+                    <TextBlock Text="SIMULAR ENVÍO" Foreground="White" FontSize="19" FontWeight="Bold"/>
+                    <TextBlock Text="Configura la ruta y el recorrido" Foreground="#9EB8BE" FontSize="12" Margin="0,5,0,0"/>
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -135,12 +201,23 @@
                         <ComboBox x:Name="CboDestination" Style="{StaticResource RouteCombo}" SelectionChanged="CboNodes_SelectionChanged"/>
                         <Button x:Name="BtnSwapPoints" Content="⇄  Intercambiar municipios" Style="{StaticResource SecondaryButton}" Click="BtnSwapPoints_Click" Margin="0,12,0,0"/>
                         <Border Background="#34515A" Height="1" Margin="0,18,0,17"/>
-                        <TextBlock Text="PEDIDOS" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Nombre del cliente" Style="{StaticResource FieldLabel}"/>
-                        <TextBox x:Name="TxtCliente" Height="32" Padding="6,4" Background="White" Foreground="#122D38" BorderThickness="0"/>
-                        <Button x:Name="BtnRegistrarPedido" Content="Registrar pedido" Style="{StaticResource SecondaryButton}" Click="BtnRegistrarPedido_Click" Margin="0,10,0,10"/>
-                        <TextBlock Text="Pedidos registrados" Style="{StaticResource FieldLabel}"/>
-                        <ListBox x:Name="ListPedidos" MinHeight="40" MaxHeight="150" Background="#244650" Foreground="White" BorderThickness="0" FontSize="11" SelectionChanged="ListPedidos_SelectionChanged"/>
+                        <TextBlock Text="PEDIDO REGISTRADO (OPCIONAL)" Style="{StaticResource SectionTitle}"/>
+                        <ComboBox x:Name="ListPedidos" Style="{StaticResource RouteCombo}" Height="56" SelectionChanged="ListPedidos_SelectionChanged"
+                                  ToolTip="{Binding SelectedItem, RelativeSource={RelativeSource Self}}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Cliente}" FontWeight="SemiBold" FontSize="12"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                            <TextBlock Text="{Binding Guia}" FontSize="10"/>
+                                            <TextBlock Text=" · " FontSize="10"/>
+                                            <TextBlock Text="{Binding Estado}" FontSize="10"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="Selecciona un pedido o simula una ruta libre." Foreground="#9EB8BE" FontSize="11" Margin="0,7,0,0" TextWrapping="Wrap"/>
                         <Border Background="#34515A" Height="1" Margin="0,18,0,17"/>
                         <TextBlock Text="MÉTODO DE RECORRIDO" Style="{StaticResource SectionTitle}"/>
                         <RadioButton x:Name="RbBFS" GroupName="RouteAlgorithm" Content="BFS · menos tramos" IsChecked="True" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
@@ -293,6 +370,104 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
+        </Grid>
+        </Grid>
+
+        <Grid x:Name="RegistrationView" Grid.Row="1" Visibility="Collapsed">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="334"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Background="#102F39">
+                <Grid Margin="22,18,22,14">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,0,24">
+                        <TextBlock Text="NUEVO REGISTRO" Foreground="White" FontSize="19" FontWeight="Bold"/>
+                        <TextBlock Text="Agrega un pedido a la tabla hash" Foreground="#9EB8BE" FontSize="12" Margin="0,5,0,0"/>
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="DATOS DEL PEDIDO" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="Guía del pedido" Style="{StaticResource FieldLabel}"/>
+                            <Border Background="#244650" CornerRadius="8" Padding="12,10" Margin="0,0,0,18">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="TxtRegistrationTrackingNumber" Foreground="#8FE3D6" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="↻" Click="BtnRegenerateRegistrationTracking_Click" ToolTip="Generar otra guía" AutomationProperties.Name="Generar otra guía de registro"
+                                            Background="Transparent" Foreground="#8FE3D6" BorderThickness="0" Cursor="Hand" FontSize="20" Padding="5,0"/>
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="Nombre del cliente" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="TxtCliente" Height="39" Padding="9,7" Background="White" Foreground="#122D38" BorderThickness="0" MaxLength="120"/>
+                            <TextBlock Text="Municipio de origen" Style="{StaticResource FieldLabel}" Margin="0,18,0,6"/>
+                            <ComboBox x:Name="CboRegistrationOrigin" Style="{StaticResource RouteCombo}"/>
+                            <TextBlock Text="Municipio de destino" Style="{StaticResource FieldLabel}" Margin="0,18,0,6"/>
+                            <ComboBox x:Name="CboRegistrationDestination" Style="{StaticResource RouteCombo}"/>
+                            <Button x:Name="BtnRegistrarPedido" Content="REGISTRAR EN TABLA HASH" Style="{StaticResource PrimaryButton}" Click="BtnRegistrarPedido_Click" Margin="0,24,0,12"/>
+                            <TextBlock x:Name="TxtRegistrationFeedback" Foreground="#8FE3D6" FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <Border Background="#244650" CornerRadius="10" Padding="14" Margin="0,16,0,0">
+                                <TextBlock Text="Cada pedido recibe una guía única. Después de registrarlo, selecciónalo en la tabla para simular su envío." Foreground="#BCD0D3" FontSize="12" TextWrapping="Wrap"/>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <TextBlock Grid.Row="2" Text="UFG ENVIOS  •  PROYECTO ED II" Foreground="#75969C" FontSize="10" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                </Grid>
+            </Border>
+            <Grid Grid.Column="1" Margin="27,22">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,0,20">
+                    <TextBlock Text="Registro de pedidos" Foreground="{StaticResource Ink}" FontSize="29" FontWeight="Bold"/>
+                    <TextBlock Text="Administra los envíos almacenados en la tabla hash" Foreground="{StaticResource Muted}" FontSize="13" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="16" Padding="20">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,18">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="PEDIDOS REGISTRADOS" Foreground="{StaticResource Ink}" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" Background="#E8F7F3" CornerRadius="12" Padding="12,6">
+                                <TextBlock x:Name="TxtPedidosCount" Text="0 pedidos" Foreground="#087F72" FontWeight="SemiBold" FontSize="12"/>
+                            </Border>
+                        </Grid>
+                        <Button x:Name="BtnSimularPedido" Grid.Row="1" Content="Simular envío seleccionado  →" Style="{StaticResource PrimaryButton}"
+                                Click="BtnSimularPedido_Click" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,18"/>
+                        <Grid Grid.Row="2">
+                            <DataGrid x:Name="TablaPedidos" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                      CanUserResizeRows="False" SelectionMode="Single" SelectionUnit="FullRow" SelectedValuePath="Guia" SelectionChanged="TablaPedidos_SelectionChanged"
+                                      Background="White" BorderThickness="0" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#EAF0F0" RowHeight="48"
+                                      HeadersVisibility="Column" ColumnHeaderHeight="40" AlternatingRowBackground="#F7FAFA" Foreground="{StaticResource Ink}">
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#EDF4F3"/>
+                                        <Setter Property="Foreground" Value="#47736E"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="10,8"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                <DataGrid.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Padding" Value="10,0"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value><ControlTemplate TargetType="DataGridCell"><Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGrid.CellStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Guía" Binding="{Binding Guia}" Width="165"/>
+                                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="*" MinWidth="110"/>
+                                    <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="*" MinWidth="130"/>
+                                    <DataGridTextColumn Header="Destino" Binding="{Binding Destino}" Width="*" MinWidth="130"/>
+                                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" Width="100"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel x:Name="EmptyPedidosState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock Text="Aún no hay pedidos" Foreground="{StaticResource Ink}" FontWeight="SemiBold" FontSize="20" TextAlignment="Center"/>
+                                <TextBlock Text="Completa el formulario para registrar el primero." Foreground="{StaticResource Muted}" FontSize="13" Margin="0,8,0,0" TextAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Grid.Row="3" Text="Selecciona un pedido para continuar al menú de simulación." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,16,0,0"/>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
