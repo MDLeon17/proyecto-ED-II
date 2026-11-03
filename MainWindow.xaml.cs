@@ -239,7 +239,7 @@ public partial class MainWindow : Window
         SingleMapHost.Visibility = comparing ? Visibility.Collapsed : Visibility.Visible;
         CompareMapsHost.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
         var selectedPair = _selectedOrigin != null && _selectedDestination != null;
-        var overlay = _mapRegions?.CreateOverlay(_selectedOrigin, _selectedDestination, selectedPair);
+        var overlay = _mapRegions?.CreateMap(_selectedOrigin, _selectedDestination, selectedPair);
         if (comparing)
         {
             RenderMap(_bfsMap, overlay, selectedPair);
@@ -248,7 +248,7 @@ public partial class MainWindow : Window
         else RenderMap(_singleMap, overlay, selectedPair);
     }
 
-    private void RenderMap(MapSurface surface, BitmapSource? overlay, bool selectedPair)
+    private void RenderMap(MapSurface surface, ImageSource? overlay, bool selectedPair)
     {
         var canvas = surface.Canvas;
         canvas.Children.Clear();
@@ -256,9 +256,6 @@ public partial class MainWindow : Window
         surface.ActiveOutlines.Clear();
         surface.ActiveSegments.Clear();
 
-        var image = new Image { Source = _mapImage, Width = 775, Height = 1062, Opacity = 0.45, IsHitTestVisible = false };
-        Panel.SetZIndex(image, 0);
-        canvas.Children.Add(image);
         if (overlay != null)
         {
             var tint = new Image { Source = overlay, Width = 775, Height = 780, IsHitTestVisible = false };
@@ -275,8 +272,8 @@ public partial class MainWindow : Window
             if (!drawn.Add(key)) continue;
             var from = _graph.Nodes[edge.FromId];
             var to = _graph.Nodes[edge.ToId];
-            var outline = CreateRoad(from, to, Colors.White, 8);
-            var road = CreateRoad(from, to, RoadColor, 3.5);
+            var outline = CreateRoad(from, to, Colors.White, 4);
+            var road = CreateRoad(from, to, RoadColor, 1.65);
             outline.Opacity = selectedPair ? 0.55 : 1;
             road.Opacity = selectedPair ? 0.32 : 0.6;
             Panel.SetZIndex(outline, 2);
