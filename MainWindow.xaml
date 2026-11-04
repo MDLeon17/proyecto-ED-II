@@ -464,8 +464,24 @@
                                 </Border>
                             </StackPanel>
                         </Grid>
-                        <Button x:Name="BtnSimularPedido" Grid.Row="1" Content="Simular envío seleccionado  →" Style="{StaticResource PrimaryButton}"
-                                Click="BtnSimularPedido_Click" IsEnabled="False" HorizontalAlignment="Left" Margin="0,0,0,18"/>
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,18">
+                            <Button x:Name="BtnSimularPedido" Content="Simular envío seleccionado  →" Style="{StaticResource PrimaryButton}"
+                                    Click="BtnSimularPedido_Click" IsEnabled="False" Margin="0,0,12,0"/>
+                            <Button x:Name="BtnEliminarPedido" Content="Eliminar pedido" Click="BtnEliminarPedido_Click" IsEnabled="False" MinWidth="130">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Height" Value="44"/>
+                                        <Setter Property="Background" Value="#FDECE7"/>
+                                        <Setter Property="Foreground" Value="#B8503A"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F9D4CA"/></Trigger>
+                                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
                         <Grid Grid.Row="2">
                             <DataGrid x:Name="TablaPedidos" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                                       CanUserResizeRows="False" SelectionMode="Single" SelectionUnit="FullRow" SelectedValuePath="Guia" SelectionChanged="TablaPedidos_SelectionChanged"

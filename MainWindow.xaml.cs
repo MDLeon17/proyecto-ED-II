@@ -86,7 +86,27 @@ public partial class MainWindow : Window
     private void TablaPedidos_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;
-        BtnSimularPedido.IsEnabled = _runCts == null && TablaPedidos.SelectedValue is string;
+        var haySeleccion = _runCts == null && TablaPedidos.SelectedValue is string;
+        BtnSimularPedido.IsEnabled = haySeleccion;
+        BtnEliminarPedido.IsEnabled = haySeleccion;
+    }
+
+    private void BtnEliminarPedido_Click(object sender, RoutedEventArgs e)
+    {
+        if (_runCts != null || TablaPedidos.SelectedValue is not string guia) return;
+        var pedido = _pedidos.Buscar(guia);
+        if (pedido == null) return;
+
+        var respuesta = MessageBox.Show($"¿Eliminar el pedido {pedido.Guia} de {pedido.Cliente}?",
+                                        "UFG ENVIOS", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (respuesta != MessageBoxResult.Yes) return;
+
+        _pedidos.Eliminar(guia);
+        // Si el simulador tenía cargado ese pedido, ya no hay pedido actual
+        if (_pedidoActual != null && _pedidoActual.Guia == guia) _pedidoActual = null;
+        RefrescarPedidos();
+        ShowRegistrationFeedback($"Pedido {guia} eliminado.", true);
+        AddLog($"Pedido {guia} eliminado de la tabla hash.");
     }
 
     private void BtnSimularPedido_Click(object sender, RoutedEventArgs e)
@@ -416,6 +436,13 @@ public partial class MainWindow : Window
                 var bfs = _graph.RunBFS(_selectedOrigin.Id, _selectedDestination.Id);
                 var dfs = _graph.RunDFS(_selectedOrigin.Id, _selectedDestination.Id);
                 var report = _graph.AnalyzeViability(bfs, dfs);
+                if (!bfs.Success || !dfs.Success)
+                {
+                    TxtSystemStatus.Text = "SIN RUTA DISPONIBLE";
+                    AddLog($"No hay ruta entre {_selectedOrigin.Name} y {_selectedDestination.Name}.");
+                    CambiarEstadoPedido(EstadoPedido.SinRuta);
+                    return;
+                }
                 ShowMetrics(bfs, dfs);
                 TxtWinnerBadge.Text = report.WinnerBadge;
                 TxtViabilityExplanation.Text = report.DetailedLogisticsAnalysis;
@@ -439,6 +466,13 @@ public partial class MainWindow : Window
                     : _graph.RunBFS(_selectedOrigin.Id, _selectedDestination.Id);
                 var color = usingDfs ? DfsColor : BfsColor;
                 var name = usingDfs ? "DFS" : "BFS";
+                if (!result.Success)
+                {
+                    TxtSystemStatus.Text = "SIN RUTA DISPONIBLE";
+                    AddLog($"{name}: no hay ruta entre {_selectedOrigin.Name} y {_selectedDestination.Name}.");
+                    CambiarEstadoPedido(EstadoPedido.SinRuta);
+                    return;
+                }
                 ShowMetrics(usingDfs ? null : result, usingDfs ? result : null);
                 TxtWinnerBadge.Text = $"Ruta {name} preparada";
                 TxtViabilityExplanation.Text = $"{result.TotalHops} tramos · {result.TotalDistanceKm:N0} km estimados · {result.TotalEstimatedHours:N1} h estimadas. " +

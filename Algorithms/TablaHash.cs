@@ -51,6 +51,27 @@ public class TablaHash
         return null;
     }
 
+    // Quita el pedido con esa guía de su cadena. Devuelve false si no existía.
+    public bool Eliminar(string guia)
+    {
+        int posicion = Hash(guia);
+        Nodo? anterior = null;
+        var actual = _cubetas[posicion];
+        while (actual != null)
+        {
+            if (actual.Clave == guia)
+            {
+                if (anterior == null) _cubetas[posicion] = actual.Siguiente; // era el primero de la cadena
+                else anterior.Siguiente = actual.Siguiente;
+                Cantidad--;
+                return true;
+            }
+            anterior = actual;
+            actual = actual.Siguiente;
+        }
+        return false;
+    }
+
     public List<Pedido> ObtenerTodos()
     {
         var lista = new List<Pedido>();
