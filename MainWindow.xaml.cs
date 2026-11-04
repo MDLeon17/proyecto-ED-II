@@ -670,6 +670,20 @@ public partial class MainWindow : Window
             Estado = pedido.EstadoTexto
         }).ToList();
         TablaPedidos.SelectedValue = selectedGuide;
+
+        // Se cuenta cuántos pedidos hay en cada estado recorriéndolos uno por uno
+        int registrados = 0, enTransito = 0, entregados = 0, sinRuta = 0;
+        foreach (var registro in pedidos)
+        {
+            if (registro.Estado == EstadoPedido.Registrado) registrados++;
+            else if (registro.Estado == EstadoPedido.EnTransito) enTransito++;
+            else if (registro.Estado == EstadoPedido.Entregado) entregados++;
+            else sinRuta++;
+        }
+        TxtCountRegistrado.Text = registrados == 1 ? "1 registrado" : $"{registrados} registrados";
+        TxtCountTransito.Text = $"{enTransito} en tránsito";
+        TxtCountEntregado.Text = entregados == 1 ? "1 entregado" : $"{entregados} entregados";
+        TxtCountSinRuta.Text = $"{sinRuta} sin ruta";
         TxtPedidosCount.Text = pedidos.Count == 1 ? "1 pedido" : $"{pedidos.Count} pedidos";
         EmptyPedidosState.Visibility = pedidos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
