@@ -190,7 +190,15 @@ internal static class Program
         if (((TextBlock)window.FindName("TxtSystemStatus")!).Text != "ENTREGADO" ||
             !((TextBlock)window.FindName("TxtDijkstraInfo")!).Text.Contains("Q "))
             throw new Exception("La animación Dijkstra no completó la entrega.");
-        if (args.Length == 2) SavePreview(layout, Path.ChangeExtension(args[1], ".dijkstra.png"));
+        if (args.Length == 2)
+        {
+            SavePreview(layout, Path.ChangeExtension(args[1], ".dijkstra.png"));
+            var options = (System.Windows.Controls.Primitives.Popup)window.FindName("EnvioOpcionesPopup")!;
+            SavePreview((FrameworkElement)options.Child, Path.ChangeExtension(args[1], ".opciones.png"), 285, 400);
+            ((RadioButton)window.FindName("NavHistorial")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            SavePreview(layout, Path.ChangeExtension(args[1], ".historial.png"));
+            SavePreview(layout, Path.ChangeExtension(args[1], ".historial-minimo.png"), 1200, 720);
+        }
         window.Close();
         Console.WriteLine($"Verificados menú, registro, remitente/destinatario, búsqueda hash, Trie, {nodes.Length} contornos, BFS/DFS en paralelo y animación Dijkstra.");
     }

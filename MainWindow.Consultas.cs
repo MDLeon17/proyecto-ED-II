@@ -11,15 +11,15 @@ public partial class MainWindow
 {
     private readonly Grid _consultasVista = new() { Visibility = Visibility.Collapsed, Margin = new Thickness(24, 18, 24, 18) };
     private readonly RadioButton _navConsultas = new();
-    private readonly TextBox _consultaGuia = new() { Height = 34, Text = "UFG-DEMO-001" };
-    private readonly TextBox _consultaPrefijo = new() { Height = 34 };
-    private readonly ListBox _sugerencias = new() { Height = 105, DisplayMemberPath = "Name" };
-    private readonly ComboBox _consultaOrigen = new() { Height = 34, DisplayMemberPath = "Name" };
-    private readonly ComboBox _consultaDestino = new() { Height = 34, DisplayMemberPath = "Name" };
+    private readonly TextBox _consultaGuia = new() { Height = 39, Text = "UFG-DEMO-001" };
+    private readonly TextBox _consultaPrefijo = new() { Height = 39 };
+    private readonly ListBox _sugerencias = new() { Height = 96, DisplayMemberPath = "Name", Margin = new Thickness(0, 6, 0, 0) };
+    private readonly ComboBox _consultaOrigen = new() { Height = 39, DisplayMemberPath = "Name" };
+    private readonly ComboBox _consultaDestino = new() { Height = 39, DisplayMemberPath = "Name" };
     private readonly TextBox _consultaResultado = new()
     {
         IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-        Padding = new Thickness(18), FontSize = 14, Background = Brushes.White
+        Padding = new Thickness(0, 8, 8, 0), FontSize = 13, Background = Brushes.White, BorderThickness = new Thickness(0)
     };
     private readonly TextBlock _datosResumen = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 12) };
 
@@ -34,17 +34,39 @@ public partial class MainWindow
         ((StackPanel)NavSimulation.Parent).Children.Add(_navConsultas);
         RegisterName("NavConsultas", _navConsultas);
         RegisterName("ConsultasView", _consultasVista);
-        _consultasVista.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(360) });
+        _consultasVista.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _consultasVista.RowDefinitions.Add(new RowDefinition());
+        _consultasVista.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(370) });
         _consultasVista.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(18) });
         _consultasVista.ColumnDefinitions.Add(new ColumnDefinition());
+        var heading = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
+        var title = TextoVista("Consultas y datos", 29);
+        title.FontWeight = FontWeights.Bold;
+        heading.Children.Add(title);
+        var subtitle = TextoVista("Busca paquetes y explora las rutas de la red de envíos.", 12);
+        subtitle.Foreground = (Brush)FindResource("Muted");
+        heading.Children.Add(subtitle);
+        var headingRow = new Grid();
+        headingRow.ColumnDefinitions.Add(new ColumnDefinition());
+        headingRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        headingRow.Children.Add(heading);
+        var load = AddButton(headingRow, "Reemplazar datos desde JSON…", CargarDatos_Click);
+        load.ToolTip = "Reemplaza municipios, rutas y envíos; limpia el historial de la sesión.";
+        load.VerticalAlignment = VerticalAlignment.Top;
+        load.Margin = new Thickness(16, 4, 0, 0);
+        Grid.SetColumn(load, 1);
+        Grid.SetColumnSpan(headingRow, 3);
+        _consultasVista.Children.Add(headingRow);
         var form = new StackPanel();
-        form.Children.Add(TextoVista("Consultas y datos", 25));
-        form.Children.Add(_datosResumen);
-        AddButton(form, "Reemplazar datos desde JSON…", CargarDatos_Click).ToolTip = "Reemplaza municipios, rutas y envíos; limpia el historial de la sesión.";
-        form.Children.Add(TextoVista("BUSCAR ENVÍO POR GUÍA", 11));
+        _datosResumen.FontSize = 12;
+        _datosResumen.Foreground = (Brush)FindResource("Muted");
+        form.Children.Add(new Border { Background = new SolidColorBrush(Color.FromRgb(237, 245, 243)), CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 0, 12, 0), Child = _datosResumen });
+        AddQueryLabel(form, "BUSCAR ENVÍO POR GUÍA");
         form.Children.Add(_consultaGuia);
-        RegisterName("BtnBuscarGuia", AddButton(form, "Buscar guía", BuscarGuia_Click));
-        form.Children.Add(TextoVista("AUTOCOMPLETAR MUNICIPIO", 11));
+        var search = AddButton(form, "Buscar guía", BuscarGuia_Click);
+        search.Style = (Style)FindResource("PrimaryButton");
+        RegisterName("BtnBuscarGuia", search);
+        AddQueryLabel(form, "AUTOCOMPLETAR MUNICIPIO");
         _consultaPrefijo.ToolTip = "Escribe un prefijo, por ejemplo: san, co o gén (ignora tildes).";
         form.Children.Add(_consultaPrefijo);
         form.Children.Add(_sugerencias);
@@ -53,21 +75,36 @@ public partial class MainWindow
         {
             if (_sugerencias.SelectedItem is HubNode hub) _consultaDestino.SelectedItem = hub;
         };
-        form.Children.Add(TextoVista("ORIGEN", 11));
+        AddQueryLabel(form, "ORIGEN");
         form.Children.Add(_consultaOrigen);
-        form.Children.Add(TextoVista("DESTINO", 11));
+        AddQueryLabel(form, "DESTINO");
         form.Children.Add(_consultaDestino);
-        var buttons = new WrapPanel();
+        var buttons = new System.Windows.Controls.Primitives.UniformGrid { Columns = 3, Margin = new Thickness(0, 4, 0, 12) };
         AddButton(buttons, "BFS", (_, _) => ConsultarRuta("BFS"));
         AddButton(buttons, "DFS", (_, _) => ConsultarRuta("DFS"));
         AddButton(buttons, "Conectividad", ConsultarConectividad_Click);
         AddButton(buttons, "Dijkstra: km", (_, _) => ConsultarRuta("Dijkstra", RouteWeight.Distance));
         RegisterName("BtnConsultarCosto", AddButton(buttons, "Dijkstra: costo", (_, _) => ConsultarRuta("Dijkstra", RouteWeight.Cost)));
         AddButton(buttons, "Dijkstra: tiempo", (_, _) => ConsultarRuta("Dijkstra", RouteWeight.Time));
-        form.Children.Add(buttons);
-        _consultasVista.Children.Add(new ScrollViewer { Content = form, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-        Grid.SetColumn(_consultaResultado, 2);
-        _consultasVista.Children.Add(_consultaResultado);
+        var formCard = TarjetaVista(new ScrollViewer { Content = form, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        Grid.SetRow(formCard, 1);
+        _consultasVista.Children.Add(formCard);
+        var results = new Grid();
+        results.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        results.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        results.RowDefinitions.Add(new RowDefinition());
+        var resultLabel = TextoVista("RESULTADO DE LA CONSULTA", 12);
+        resultLabel.FontWeight = FontWeights.SemiBold;
+        resultLabel.Foreground = (Brush)FindResource("Teal");
+        results.Children.Add(resultLabel);
+        Grid.SetRow(buttons, 1);
+        results.Children.Add(buttons);
+        Grid.SetRow(_consultaResultado, 2);
+        results.Children.Add(_consultaResultado);
+        var resultCard = TarjetaVista(results);
+        Grid.SetColumn(resultCard, 2);
+        Grid.SetRow(resultCard, 1);
+        _consultasVista.Children.Add(resultCard);
         RegisterName("ConsultaGuia", _consultaGuia);
         RegisterName("ConsultaPrefijo", _consultaPrefijo);
         RegisterName("ConsultaSugerencias", _sugerencias);
@@ -76,6 +113,15 @@ public partial class MainWindow
         RegisterName("ConsultaResultado", _consultaResultado);
         ActualizarConsultas();
         _consultaResultado.Text = "Busca una guía para consultar remitente, destinatario y estado.\n\nEscribe un prefijo para obtener sugerencias del Trie y elige una como destino.\n\nBFS minimiza tramos; DFS explora en profundidad; Dijkstra minimiza el peso elegido.\n\nConectividad muestra el grupo de Union-Find y comprueba por separado la ruta dirigida.\n\nLos datos son simulados. Los envíos y cambios de estado duran mientras la aplicación está abierta.";
+    }
+
+    private static void AddQueryLabel(Panel panel, string text)
+    {
+        var label = TextoVista(text, 11);
+        label.FontWeight = FontWeights.SemiBold;
+        label.Foreground = new SolidColorBrush(Color.FromRgb(71, 115, 110));
+        label.Margin = new Thickness(0, 12, 0, 6);
+        panel.Children.Add(label);
     }
 
     private Button AddButton(Panel panel, string text, RoutedEventHandler handler)

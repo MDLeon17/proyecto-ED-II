@@ -21,7 +21,7 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
-        <Style x:Key="RouteCombo" TargetType="ComboBox">
+        <Style x:Key="RouteCombo" TargetType="ComboBox" BasedOn="{StaticResource SystemComboBox}">
             <Setter Property="Height" Value="39"/>
             <Setter Property="Padding" Value="9,4"/>
             <Setter Property="Background" Value="White"/>
@@ -239,7 +239,7 @@
                         <RadioButton x:Name="RbBFS" GroupName="RouteAlgorithm" Content="BFS · menos tramos" IsChecked="True" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
                         <RadioButton x:Name="RbDFS" GroupName="RouteAlgorithm" Content="DFS · profundidad" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
                         <RadioButton x:Name="RbDijkstra" GroupName="RouteAlgorithm" Content="Dijkstra · ruta óptima" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CboWeight" SelectedIndex="0" Margin="0,0,0,8"><ComboBoxItem Content="Distancia"/><ComboBoxItem Content="Costo"/><ComboBoxItem Content="Tiempo"/></ComboBox>
+                        <ComboBox x:Name="CboWeight" Style="{StaticResource RouteCombo}" SelectedIndex="0" Margin="0,0,0,8"><ComboBoxItem Content="Distancia"/><ComboBoxItem Content="Costo"/><ComboBoxItem Content="Tiempo"/></ComboBox>
                         <RadioButton x:Name="RbCompare" GroupName="RouteAlgorithm" Content="Comparar en paralelo" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,12"/>
                         <TextBlock Text="Velocidad de la simulación" Style="{StaticResource FieldLabel}"/>
                         <Grid>

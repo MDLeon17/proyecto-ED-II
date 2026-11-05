@@ -3,11 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="Styles/SystemTheme.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
         <SolidColorBrush x:Key="Ink" Color="#122D38"/>
         <SolidColorBrush x:Key="Muted" Color="#6D8189"/>
         <SolidColorBrush x:Key="Teal" Color="#087F72"/>
         <SolidColorBrush x:Key="Coral" Color="#F27A5E"/>
         <SolidColorBrush x:Key="Line" Color="#DCE6E8"/>
         <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
+      </ResourceDictionary>
     </Application.Resources>
 </Application>

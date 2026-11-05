@@ -1489,6 +1489,7 @@ public partial class MainWindow : Window
         _navHistorial.Style = NavSimulation.Style;
         _navHistorial.GroupName = NavSimulation.GroupName;
         _navHistorial.Click += (_, _) => MostrarVista("Historial");
+        RegisterName("NavHistorial", _navHistorial);
 
         if (NavSimulation.Parent is StackPanel menu)
         {
@@ -1758,6 +1759,9 @@ public partial class MainWindow : Window
         _envioOpciones.Height = 44;
         _envioOpciones.Margin = new Thickness(8, 0, 0, 0);
         _envioOpciones.ToolTip = "BFS, DFS, Dijkstra o paralelo";
+        _envioOpciones.Style = (Style)FindResource("SystemMenuToggle");
+        RegisterName("BtnEnvioOpciones", _envioOpciones);
+        RegisterName("EnvioOpcionesPopup", _envioOpcionesPopup);
 
         EnlazarVista(
             _envioOpciones,
@@ -1798,8 +1802,10 @@ public partial class MainWindow : Window
 
         var opciones = new StackPanel();
 
-        opciones.Children.Add(
-            TextoVista("RECORRIDO", 12));
+        var tituloOpciones = TextoVista("RECORRIDO", 12);
+        tituloOpciones.Foreground = new SolidColorBrush(Color.FromRgb(188, 208, 211));
+        tituloOpciones.FontWeight = FontWeights.SemiBold;
+        opciones.Children.Add(tituloOpciones);
 
         var nombres = new[]
         {
@@ -1823,6 +1829,7 @@ public partial class MainWindow : Window
             {
                 Content = nombres[i],
                 GroupName = "OpcionesEnvio",
+                Style = (Style)FindResource("AlgorithmOption"),
                 Margin = new Thickness(0, 5, 0, 5)
             };
 
@@ -1842,14 +1849,18 @@ public partial class MainWindow : Window
             opciones.Children.Add(radio);
         }
 
-        opciones.Children.Add(TextoVista("OPTIMIZAR DIJKSTRA", 11));
+        var tituloPesos = TextoVista("OPTIMIZAR DIJKSTRA", 11);
+        tituloPesos.Foreground = tituloOpciones.Foreground;
+        tituloPesos.Margin = new Thickness(0, 12, 0, 4);
+        opciones.Children.Add(tituloPesos);
         var pesos = new ComboBox { ItemsSource = new[] { "Distancia", "Costo", "Tiempo" }, Margin = new Thickness(0, 6, 0, 10) };
         EnlazarVista(pesos, System.Windows.Controls.Primitives.Selector.SelectedIndexProperty, CboWeight, "SelectedIndex", true);
         EnlazarVista(pesos, IsEnabledProperty, CboWeight, "IsEnabled");
         opciones.Children.Add(pesos);
 
-        opciones.Children.Add(
-            TextoVista("VELOCIDAD", 11));
+        var tituloVelocidad = TextoVista("VELOCIDAD", 11);
+        tituloVelocidad.Foreground = tituloOpciones.Foreground;
+        opciones.Children.Add(tituloVelocidad);
 
         var velocidad = new Slider
         {
@@ -1868,8 +1879,9 @@ public partial class MainWindow : Window
 
         opciones.Children.Add(velocidad);
 
-        opciones.Children.Add(
-            TextoReflejado(TxtSpeedLabel, "Text", 11));
+        var etiquetaVelocidad = TextoReflejado(TxtSpeedLabel, "Text", 11);
+        etiquetaVelocidad.Foreground = new SolidColorBrush(Color.FromRgb(143, 227, 214));
+        opciones.Children.Add(etiquetaVelocidad);
 
         _envioOpcionesPopup.PlacementTarget = _envioOpciones;
 
@@ -1881,6 +1893,8 @@ public partial class MainWindow : Window
         _envioOpcionesPopup.Child = TarjetaVista(opciones);
 
         ((Border)_envioOpcionesPopup.Child).Width = 285;
+        ((Border)_envioOpcionesPopup.Child).Background = new SolidColorBrush(Color.FromRgb(16, 47, 57));
+        ((Border)_envioOpcionesPopup.Child).BorderBrush = new SolidColorBrush(Color.FromRgb(52, 81, 90));
 
         EnlazarVista(
             _envioOpcionesPopup,
@@ -1904,10 +1918,13 @@ public partial class MainWindow : Window
 
         _historialVista.RowDefinitions.Add(new RowDefinition());
 
-        _historialVista.Children.Add(
-            TextoVista("Historial de entregas", 26));
+        var tituloHistorial = TextoVista("Historial de entregas", 29);
+        tituloHistorial.FontWeight = FontWeights.Bold;
+        _historialVista.Children.Add(tituloHistorial);
 
         var contador = TextoVista("", 12);
+        contador.Foreground = (Brush)FindResource("Muted");
+        contador.Margin = new Thickness(0, 0, 0, 18);
 
         contador.SetBinding(
             TextBlock.TextProperty,
@@ -1927,7 +1944,7 @@ public partial class MainWindow : Window
             IsReadOnly = true,
             CanUserAddRows = false,
             CanUserDeleteRows = false,
-            RowHeight = 42
+            RowHeight = 48
         };
 
         var propiedades = new[]
@@ -1966,11 +1983,12 @@ public partial class MainWindow : Window
                 new DataGridTextColumn
                 {
                     Header = cabeceras[i],
+                    ElementStyle = (Style)FindResource("PedidoTexto"),
                     Binding = binding,
                     Width = new DataGridLength(
                         1,
                         DataGridLengthUnitType.Star),
-                    MinWidth = i == 0 ? 150 : 95
+                    MinWidth = i == 0 ? 150 : i == 1 ? 165 : i == 6 ? 140 : 130
                 });
         }
 
@@ -2011,8 +2029,9 @@ public partial class MainWindow : Window
 
         contenedorTabla.Children.Add(vacio);
 
-        Grid.SetRow(contenedorTabla, 2);
-        _historialVista.Children.Add(contenedorTabla);
+        var tarjetaHistorial = TarjetaVista(contenedorTabla);
+        Grid.SetRow(tarjetaHistorial, 2);
+        _historialVista.Children.Add(tarjetaHistorial);
     }
 
     private static Grid CrearMapaParalelo(
@@ -2061,7 +2080,9 @@ public partial class MainWindow : Window
         var barra = new ProgressBar
         {
             Minimum = 0,
-            Maximum = 100
+            Maximum = 100,
+            Foreground = progreso.Foreground,
+            Background = progreso.Background
         };
 
         EnlazarVista(
