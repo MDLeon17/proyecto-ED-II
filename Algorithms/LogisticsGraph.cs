@@ -56,8 +56,7 @@ public class LogisticsGraph
         foreach (var edge in edges) _components.Union(_nodeIndexes[edge.FromId], _nodeIndexes[edge.ToId]);
     }
 
-    // Dijkstra con montículo propio (MinHeap): O((V + E) log V). Los pesos no pueden ser negativos.
-    // Una entrada repetida en el montículo se descarta si el municipio ya quedó definitivo.
+    // Dijkstra con MinHeap: O((V + E) log V).
     public TraversalResult RunDijkstra(string startId, string endId, RouteWeight weight = RouteWeight.Distance)
     {
         var timer = Stopwatch.StartNew();
@@ -66,7 +65,7 @@ public class LogisticsGraph
         if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId) || !AreWeaklyConnected(startId, endId)) return result;
 
         int count = Nodes.Count;
-        var ids = new string[count]; // posición -> id del municipio
+        var ids = new string[count];
         foreach (var id in Nodes.Keys) ids[_nodeIndexes[id]] = id;
         var distances = new double[count];
         var previous = new int[count];

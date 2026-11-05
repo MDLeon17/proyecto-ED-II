@@ -1,8 +1,6 @@
 namespace UfgEnvios.Algorithms;
 
-// Montículo mínimo propio sobre arreglos (cola de prioridad).
-// Dijkstra lo usa para sacar siempre el municipio con menor peso acumulado.
-// Si dos entradas empatan en peso, sale primero la de menor índice (resultado repetible).
+// Montículo mínimo propio sobre arreglos; lo usa Dijkstra.
 public sealed class MinHeap
 {
     private int[] _items = new int[16];

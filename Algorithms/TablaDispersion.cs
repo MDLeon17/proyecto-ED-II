@@ -15,8 +15,7 @@ public sealed class TablaDispersion<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     public int Count { get; private set; }
     private int Index(TKey key) => (int)(Hash(key) % (uint)_buckets.Length);
 
-    // Función hash propia (no usa GetHashCode de .NET) para los tipos de clave del proyecto.
-    // string: polinomio base 131 sobre cada carácter; int y char: multiplicación por una constante grande.
+    // Hash propio: polinomio base 131 para texto, constante multiplicativa para int y char.
     private static uint Hash(TKey key)
     {
         unchecked

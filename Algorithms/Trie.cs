@@ -19,14 +19,13 @@ public sealed class Trie
             if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark) result.Append(c);
         return result.ToString();
     }
-    // Cada municipio se inserta una vez por palabra de su nombre, así "ostun"
-    // encuentra "San Juan Ostuncalco" y "costa" encuentra "Flores Costa Cuca".
+    // Se inserta el nombre desde el inicio de cada palabra.
     public void Insert(HubNode hub)
     {
         string name = Normalize(hub.Name);
         for (int start = 0; start < name.Length; start++)
         {
-            if (name[start] == ' ' || (start > 0 && name[start - 1] != ' ')) continue; // solo inicios de palabra
+            if (name[start] == ' ' || (start > 0 && name[start - 1] != ' ')) continue;
             var node = _root;
             for (int i = start; i < name.Length; i++)
             {
@@ -64,7 +63,6 @@ public sealed class Trie
                 if (result.Count == limit) return;
                 if (!Contains(result, current.Matches[i])) result.Add(current.Matches[i]);
             }
-            // Hijos en orden alfabético: ordenamiento por inserción de las letras
             var letters = new char[current.Children.Count];
             int total = 0;
             foreach (var pair in current.Children)

@@ -12,7 +12,6 @@ public static class DefaultMapData
         int total = 0;
         foreach (var hub in graph.Nodes.Values)
         {
-            // Inserción ordenada por número de mapa
             int j = total++;
             while (j > 0 && hubs[j - 1].MapNumber > hub.MapNumber) { hubs[j] = hubs[j - 1]; j--; }
             hubs[j] = hub;
