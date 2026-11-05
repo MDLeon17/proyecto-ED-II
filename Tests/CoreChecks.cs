@@ -85,6 +85,8 @@ internal static class CoreChecks
         }
         RunQueries(loaded);
         Check(graph.NameIndex.Search("gén").Single().Id == "GEN" && graph.NameIndex.Search("  GÉN ").Single().Id == "GEN", "Trie ignora tildes, espacios y mayúsculas.");
+        Check(graph.NameIndex.Search("ostun").Single().Id == "OST" && graph.NameIndex.Search("cuca").Count == 2, "Trie busca por cualquier palabra del nombre.");
+        Check(graph.NameIndex.Search("co").Count == 4 && graph.NameIndex.Search("san", 30).Count == 6, "Trie no repite municipios.");
         var heap = new MinHeap();
         foreach (var n in new[] { 5, 3, 9, 1, 7, 3 }) heap.Push(n, n);
         double last = -1;

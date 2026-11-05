@@ -63,7 +63,7 @@ Sea V la cantidad de municipios, E la cantidad de arcos, N la cantidad de paquet
 | DFS | Recursión, conjunto de visitados y predecesores. O(V + E) esperado, memoria O(V). Su ruta depende del orden de las adyacencias y no garantiza un óptimo. |
 | Dijkstra | Tabla de distancias, predecesores y conjunto de nodos resueltos. Montículo mínimo propio (`MinHeap`): O((V + E) log V), memoria auxiliar O(V). Optimiza uno de los tres pesos no negativos. |
 | Union-Find | Arreglos de padres y tamaños; compresión de caminos y unión por tamaño. O(α(V)) amortizado por operación. Se reconstruye de forma diferida cuando cambian los nodos o las conexiones. |
-| Trie | Cada carácter normalizado conduce a un nodo con tabla de hijos propia. Insertar O(L) esperado; localizar un prefijo O(L), más el recorrido del subárbol para reunir sugerencias. Los hijos se ordenan para obtener resultados estables. |
+| Trie | Cada carácter normalizado conduce a un nodo con tabla de hijos propia. Se inserta el nombre desde el inicio de cada palabra, así que "ostun" encuentra "San Juan Ostuncalco". Insertar O(P·L) esperado, con P palabras; localizar un prefijo O(L), más el recorrido del subárbol para reunir sugerencias. Los hijos se ordenan para obtener resultados estables. |
 
 Las colecciones internas de WPF (controles, geometrías, columnas), las interfaces, LINQ y los arreglos siguen siendo parte del framework. El almacenamiento y las estructuras de los algoritmos, el índice del mapa y el historial usan las implementaciones propias del proyecto.
 
