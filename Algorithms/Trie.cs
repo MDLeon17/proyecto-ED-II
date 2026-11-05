@@ -19,16 +19,30 @@ public sealed class Trie
             if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark) result.Append(c);
         return result.ToString();
     }
+    // Se inserta el nombre desde el inicio de cada palabra.
     public void Insert(HubNode hub)
     {
-        var node = _root;
-        foreach (char c in Normalize(hub.Name))
+        string name = Normalize(hub.Name);
+        for (int start = 0; start < name.Length; start++)
         {
-            if (!node.Children.TryGetValue(c, out var next)) node.Children.Add(c, next = new Nodo());
-            node = next;
+            if (name[start] == ' ' || (start > 0 && name[start - 1] != ' ')) continue;
+            var node = _root;
+            for (int i = start; i < name.Length; i++)
+            {
+                if (!node.Children.TryGetValue(name[i], out var next)) node.Children.Add(name[i], next = new Nodo());
+                node = next;
+            }
+            if (!Contains(node.Matches, hub)) node.Matches.Add(hub);
         }
-        if (!node.Matches.Any(h => h.Id == hub.Id)) node.Matches.Add(hub);
     }
+
+    private static bool Contains(ListaDinamica<HubNode> hubs, HubNode hub)
+    {
+        for (int i = 0; i < hubs.Count; i++)
+            if (hubs[i].Id == hub.Id) return true;
+        return false;
+    }
+
     public ListaDinamica<HubNode> Search(string prefix, int limit = 30)
     {
         var result = new ListaDinamica<HubNode>();
@@ -41,10 +55,27 @@ public sealed class Trie
         }
         Collect(node);
         return result;
+
         void Collect(Nodo current)
         {
-            foreach (var hub in current.Matches) { if (result.Count == limit) return; result.Add(hub); }
-            foreach (var child in current.Children.OrderBy(pair => pair.Key)) { if (result.Count == limit) return; Collect(child.Value); }
+            for (int i = 0; i < current.Matches.Count; i++)
+            {
+                if (result.Count == limit) return;
+                if (!Contains(result, current.Matches[i])) result.Add(current.Matches[i]);
+            }
+            var letters = new char[current.Children.Count];
+            int total = 0;
+            foreach (var pair in current.Children)
+            {
+                int j = total++;
+                while (j > 0 && letters[j - 1] > pair.Key) { letters[j] = letters[j - 1]; j--; }
+                letters[j] = pair.Key;
+            }
+            for (int i = 0; i < letters.Length; i++)
+            {
+                if (result.Count == limit) return;
+                Collect(current.Children[letters[i]]);
+            }
         }
     }
 }

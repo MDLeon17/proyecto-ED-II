@@ -20,12 +20,22 @@ internal static class CoreChecks
         Check(graph.Nodes.Count == 24 && loaded.Orders.Cantidad == 30, "Datos mínimos de ejemplo.");
         var edges = graph.AdjacencyList.Values.SelectMany(e => e).ToArray();
         Check(edges.Length == 83 && edges.Count(e => !e.Bidirectional) == 5, "44 relaciones: 39 dobles y 5 dirigidas.");
+        var defaultHubs = DefaultMapData.GetDefaultHubs();
+        bool ordered = defaultHubs.Length == 24;
+        for (int i = 1; i < defaultHubs.Length; i++) ordered &= defaultHubs[i - 1].MapNumber < defaultHubs[i].MapNumber;
+        Check(ordered && DefaultMapData.GetDefaultRoutes().Length == 83, "Datos por defecto ordenados y completos.");
         var hash = new TablaHash();
         foreach (var key in new[] { "Aa", "BB" }) Check(hash.Insertar(new Pedido { Guia = key }), "Insertar colisiones.");
         Check(hash.Eliminar("BB") && hash.Buscar("Aa") != null && hash.Buscar("BB") == null, "Eliminar en colisión.");
         for (int i = 0; i < 2000; i++) hash.Insertar(new Pedido { Guia = $"GUIA-{i}" });
         for (int i = 0; i < 2000; i++) Check(hash.Buscar($"GUIA-{i}")?.Guia == $"GUIA-{i}", "Rehash conserva guías.");
         Check(!hash.Insertar(new Pedido { Guia = "Aa" }) && !hash.Eliminar("INEXISTENTE"), "Duplicados y ausentes.");
+        var words = new TablaDispersion<string, int>();
+        for (int i = 0; i < 5000; i++) words.Add($"MUNI-{i}", i);
+        for (int i = 0; i < 5000; i++) Check(words[$"MUNI-{i}"] == i, "Hash propio de texto conserva claves.");
+        var letters = new TablaDispersion<char, int>();
+        foreach (char c in "ÁBCÑ0 z") letters.Add(c, c);
+        foreach (char c in "ÁBCÑ0 z") Check(letters[c] == c, "Hash propio de carácter.");
         var table = new TablaDispersion<int, int>();
         for (int i = -500; i < 500; i++) table.Add(i, i * 2);
         Check(table.Count == 1000 && table[-500] == -1000 && table.Remove(0) && !table.ContainsKey(0), "Dispersión con hash negativo y crecimiento.");
@@ -86,6 +96,12 @@ internal static class CoreChecks
         }
         RunQueries(loaded);
         Check(graph.NameIndex.Search("gén").Single().Id == "GEN" && graph.NameIndex.Search("  GÉN ").Single().Id == "GEN", "Trie ignora tildes, espacios y mayúsculas.");
+        Check(graph.NameIndex.Search("ostun").Single().Id == "OST" && graph.NameIndex.Search("cuca").Count == 2, "Trie busca por cualquier palabra del nombre.");
+        Check(graph.NameIndex.Search("co").Count == 4 && graph.NameIndex.Search("san", 30).Count == 6, "Trie no repite municipios.");
+        var heap = new MinHeap();
+        foreach (var n in new[] { 5, 3, 9, 1, 7, 3 }) heap.Push(n, n);
+        double last = -1;
+        while (heap.Count > 0) { heap.Pop(out var p); Check(p >= last, "MinHeap saca de menor a mayor."); last = p; }
         Check(graph.NameIndex.Search("san", 2).Count == 2 && graph.NameIndex.Search("zzzz").Count == 0, "Límite y prefijo ausente.");
         ValidateImports();
         Console.WriteLine($"Estructuras, importación y algoritmos: {_checks} comprobaciones correctas; Dijkstra contrastado en 1,728 rutas con Floyd-Warshall.");

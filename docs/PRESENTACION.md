@@ -20,7 +20,7 @@ Si queda poco tiempo, consultar Dijkstra por costo directamente en Consultas y d
 
 ## 4:20–5:20 · Decisiones y pruebas
 
-Explicar los sacrificios: la tabla hash consume cubetas; el Trie consume nodos; Union-Find conserva grupos débiles y Dijkstra con selección lineal es O(V² + E), sencillo para esta red de 24 nodos. BFS minimiza tramos y Dijkstra optimiza un peso; DFS no garantiza un óptimo.
+Explicar los sacrificios: la tabla hash consume cubetas; el Trie consume nodos; Union-Find conserva grupos débiles y Dijkstra con montículo propio es O((V + E) log V) y necesita código adicional para el montículo. BFS minimiza tramos y Dijkstra optimiza un peso; DFS no garantiza un óptimo.
 
 Mostrar `consultas.json`: cinco consultas por opción, incluidas guías y municipios inexistentes. Explicar que las pruebas contrastan Dijkstra con Floyd-Warshall en todos los pares y en los tres criterios, además de probar una red con óptimos distintos, un nodo aislado y aristas dirigidas.
 

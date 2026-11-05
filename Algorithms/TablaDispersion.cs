@@ -13,7 +13,28 @@ public sealed class TablaDispersion<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     }
     private Nodo?[] _buckets = new Nodo?[16];
     public int Count { get; private set; }
-    private int Index(TKey key) => (int)((uint)EqualityComparer<TKey>.Default.GetHashCode(key) % (uint)_buckets.Length);
+    private int Index(TKey key) => (int)(Hash(key) % (uint)_buckets.Length);
+
+    // Hash propio: polinomio base 131 para texto, constante multiplicativa para int y char.
+    private static uint Hash(TKey key)
+    {
+        unchecked
+        {
+            switch (key)
+            {
+                case string text:
+                    uint hash = 5381;
+                    foreach (char letter in text) hash = hash * 131 + letter;
+                    return hash ^ (hash >> 15);
+                case int number:
+                    return (uint)number * 2654435761u;
+                case char letter:
+                    return letter * 2654435761u;
+                default:
+                    throw new NotSupportedException($"La tabla no tiene función hash para {typeof(TKey).Name}.");
+            }
+        }
+    }
     private Nodo? Find(TKey key)
     {
         for (var node = _buckets[Index(key)]; node != null; node = node.Next)

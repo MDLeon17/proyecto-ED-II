@@ -1,3 +1,4 @@
+using System.Text;
 using UfgEnvios.Algorithms;
 namespace UfgEnvios.Models;
 
@@ -13,5 +14,14 @@ public class TraversalResult
     public double TotalCost { get; set; }
     public int NodesEvaluatedCount => VisitedOrder.Count;
     public double ExecutionTimeMs { get; set; }
-    public string SummaryPath => Path.Count > 0 ? string.Join(" → ", Path.Select(n => n.Name)) : "Sin ruta";
+    public string SummaryPath
+    {
+        get
+        {
+            if (Path.Count == 0) return "Sin ruta";
+            var text = new StringBuilder(Path[0].Name);
+            for (int i = 1; i < Path.Count; i++) text.Append(" → ").Append(Path[i].Name);
+            return text.ToString();
+        }
+    }
 }

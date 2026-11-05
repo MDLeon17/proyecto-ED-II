@@ -93,42 +93,59 @@ public class LogisticsGraph
         foreach (var edge in edges) _components.Union(_nodeIndexes[edge.FromId], _nodeIndexes[edge.ToId]);
     }
 
-    // Selección lineal del mínimo: O(V² + E), apropiada para los 24 municipios.
+    // Dijkstra con MinHeap: O((V + E) log V).
     public TraversalResult RunDijkstra(string startId, string endId, RouteWeight weight = RouteWeight.Distance)
     {
         var timer = Stopwatch.StartNew();
         string criterion = weight switch { RouteWeight.Cost => "costo", RouteWeight.Time => "tiempo", _ => "distancia" };
         var result = new TraversalResult { AlgorithmName = $"Dijkstra · {criterion}" };
         if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId) || !AreWeaklyConnected(startId, endId)) return result;
-        var distances = new TablaDispersion<string, double>();
-        var parents = new TablaDispersion<string, string?> { [startId] = null };
-        var settled = new Conjunto<string>();
-        foreach (var id in Nodes.Keys) distances[id] = double.PositiveInfinity;
-        distances[startId] = 0;
-        while (true)
+
+        int count = Nodes.Count;
+        var ids = new string[count];
+        foreach (var id in Nodes.Keys) ids[_nodeIndexes[id]] = id;
+        var distances = new double[count];
+        var previous = new int[count];
+        var settled = new bool[count];
+        for (int i = 0; i < count; i++) { distances[i] = double.PositiveInfinity; previous[i] = -1; }
+
+        int start = _nodeIndexes[startId], end = _nodeIndexes[endId];
+        distances[start] = 0;
+        var heap = new MinHeap();
+        heap.Push(start, 0);
+        while (heap.Count > 0)
         {
-            string? current = null;
-            double best = double.PositiveInfinity;
-            foreach (var id in Nodes.Keys)
-                if (!settled.Contains(id) && distances[id] < best) { current = id; best = distances[id]; }
-            if (current == null) break;
-            settled.Add(current);
-            result.VisitedOrder.Add(Nodes[current]);
-            if (current == endId) break;
-            foreach (var edge in AdjacencyList[current])
+            int current = heap.Pop(out double best);
+            if (settled[current]) continue;
+            settled[current] = true;
+            result.VisitedOrder.Add(Nodes[ids[current]]);
+            if (current == end) break;
+            foreach (var edge in AdjacencyList[ids[current]])
             {
+                int next = _nodeIndexes[edge.ToId];
                 double candidate = best + edge.Weight(weight);
-                if (settled.Contains(edge.ToId) || candidate >= distances[edge.ToId]) continue;
-                distances[edge.ToId] = candidate;
-                parents[edge.ToId] = current;
+                if (settled[next] || candidate >= distances[next]) continue;
+                distances[next] = candidate;
+                previous[next] = current;
+                heap.Push(next, candidate);
             }
         }
+
+        var parents = new TablaDispersion<string, string?>();
+        if (settled[end])
+            for (int v = end; v != -1; v = previous[v])
+                parents[ids[v]] = previous[v] == -1 ? null : ids[previous[v]];
         CompleteResult(result, parents, endId, timer);
         return result;
     }
 
-    public RouteEdge? GetEdge(string fromId, string toId) =>
-        AdjacencyList.TryGetValue(fromId, out var edges) ? edges.FirstOrDefault(e => e.ToId == toId) : null;
+    public RouteEdge? GetEdge(string fromId, string toId)
+    {
+        if (!AdjacencyList.TryGetValue(fromId, out var edges)) return null;
+        for (int i = 0; i < edges.Count; i++)
+            if (edges[i].ToId == toId) return edges[i];
+        return null;
+    }
 
     public TraversalResult RunBFS(string startId, string endId)
     {
@@ -188,7 +205,9 @@ public class LogisticsGraph
         var ids = new ListaDinamica<string>();
         for (string? current = endId; current != null; current = parents[current]) ids.Add(current);
         ids.Reverse();
-        result.Path = new ListaDinamica<HubNode>(ids.Select(id => Nodes[id]));
+        var path = new ListaDinamica<HubNode>();
+        for (int i = 0; i < ids.Count; i++) path.Add(Nodes[ids[i]]);
+        result.Path = path;
         result.Success = true;
         for (var i = 0; i < ids.Count - 1; i++)
         {
