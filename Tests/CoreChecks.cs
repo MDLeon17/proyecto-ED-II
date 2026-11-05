@@ -85,6 +85,10 @@ internal static class CoreChecks
         }
         RunQueries(loaded);
         Check(graph.NameIndex.Search("gén").Single().Id == "GEN" && graph.NameIndex.Search("  GÉN ").Single().Id == "GEN", "Trie ignora tildes, espacios y mayúsculas.");
+        var heap = new MinHeap();
+        foreach (var n in new[] { 5, 3, 9, 1, 7, 3 }) heap.Push(n, n);
+        double last = -1;
+        while (heap.Count > 0) { heap.Pop(out var p); Check(p >= last, "MinHeap saca de menor a mayor."); last = p; }
         Check(graph.NameIndex.Search("san", 2).Count == 2 && graph.NameIndex.Search("zzzz").Count == 0, "Límite y prefijo ausente.");
         ValidateImports();
         Console.WriteLine($"Estructuras, importación y algoritmos: {_checks} comprobaciones correctas; Dijkstra contrastado en 1,728 rutas con Floyd-Warshall.");

@@ -61,7 +61,7 @@ Sea V la cantidad de municipios, E la cantidad de arcos, N la cantidad de paquet
 | `Conjunto<T>` | Se apoya en la tabla de dispersión propia para controlar visitas y duplicados. |
 | BFS | Cola y tabla de predecesores. O(V + E) esperado, memoria O(V). Encuentra el menor número de aristas en el grafo dirigido. |
 | DFS | Recursión, conjunto de visitados y predecesores. O(V + E) esperado, memoria O(V). Su ruta depende del orden de las adyacencias y no garantiza un óptimo. |
-| Dijkstra | Tabla de distancias, predecesores y conjunto de nodos resueltos. Selección lineal del mínimo: O(V² + E) esperado, memoria auxiliar O(V). Optimiza uno de los tres pesos no negativos. |
+| Dijkstra | Tabla de distancias, predecesores y conjunto de nodos resueltos. Montículo mínimo propio (`MinHeap`): O((V + E) log V), memoria auxiliar O(V). Optimiza uno de los tres pesos no negativos. |
 | Union-Find | Arreglos de padres y tamaños; compresión de caminos y unión por tamaño. O(α(V)) amortizado por operación. Se reconstruye de forma diferida cuando cambian los nodos o las conexiones. |
 | Trie | Cada carácter normalizado conduce a un nodo con tabla de hijos propia. Insertar O(L) esperado; localizar un prefijo O(L), más el recorrido del subárbol para reunir sugerencias. Los hijos se ordenan para obtener resultados estables. |
 
@@ -71,7 +71,7 @@ Las colecciones internas de WPF (controles, geometrías, columnas), las interfac
 
 - **Tabla hash:** acelera la consulta por guía a cambio de memoria adicional y un orden de enumeración que no representa el orden de registro. Las colisiones se resuelven con cadenas, no sobrescribiendo pedidos.
 - **Lista de adyacencia:** evita una matriz V×V para la red dispersa. Buscar una conexión específica recorre las salidas del vértice; enumerar vecinos es directo.
-- **Dijkstra con selección lineal:** para 24 vértices es sencillo de explicar y revisar. Sacrifica escalabilidad frente a un montículo propio, que permitiría O((V + E) log V).
+- **Dijkstra con montículo propio:** escala mejor que buscar el mínimo recorriendo todos los vértices. Cuesta algo más de código y puede dejar entradas repetidas en el montículo, que se descartan al sacarlas.
 - **Union-Find:** responde consultas repetidas sobre grupos con poco costo. Ignora los sentidos: A→B une el grupo de A y B, pero no prueba que exista B→A. Para eso se ejecuta BFS. Una eliminación futura de aristas exigiría reconstruir los grupos.
 - **Trie:** comparte prefijos y evita recorrer todos los nombres en cada búsqueda. Consume nodos y tablas de hijos adicionales. Normaliza mayúsculas y tildes, conservando el nombre original para mostrarlo.
 - **Estructuras propias:** permiten explicar su funcionamiento y cumplir el objetivo académico, con más código y responsabilidad de prueba que las colecciones del framework.
@@ -102,9 +102,9 @@ Cada alta de nodo alimenta el índice Trie. Cada cambio del grafo invalida la ca
 ## Dijkstra y reconstrucción
 
 1. Inicializar las distancias en infinito y el origen en cero.
-2. Elegir el vértice pendiente con menor distancia finita.
+2. Sacar del montículo el vértice con menor distancia; si ya estaba resuelto, ignorar la entrada.
 3. Marcarlo resuelto y relajar sus arcos salientes usando distancia, costo o tiempo.
-4. Guardar el predecesor cuando se mejora una distancia.
+4. Guardar el predecesor y meter la nueva distancia en el montículo cuando se mejora.
 5. Terminar al resolver el destino o al no quedar vértices alcanzables.
 6. Reconstruir el camino desde el destino hasta el origen e invertirlo. Sumar los tres atributos del camino, aunque solo uno se haya optimizado.
 
