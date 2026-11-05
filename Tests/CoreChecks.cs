@@ -20,6 +20,10 @@ internal static class CoreChecks
         Check(graph.Nodes.Count == 24 && loaded.Orders.Cantidad == 30, "Datos mínimos de ejemplo.");
         var edges = graph.AdjacencyList.Values.SelectMany(e => e).ToArray();
         Check(edges.Length == 83 && edges.Count(e => !e.Bidirectional) == 5, "44 relaciones: 39 dobles y 5 dirigidas.");
+        var defaultHubs = DefaultMapData.GetDefaultHubs();
+        bool ordered = defaultHubs.Length == 24;
+        for (int i = 1; i < defaultHubs.Length; i++) ordered &= defaultHubs[i - 1].MapNumber < defaultHubs[i].MapNumber;
+        Check(ordered && DefaultMapData.GetDefaultRoutes().Length == 83, "Datos por defecto ordenados y completos.");
         var hash = new TablaHash();
         foreach (var key in new[] { "Aa", "BB" }) Check(hash.Insertar(new Pedido { Guia = key }), "Insertar colisiones.");
         Check(hash.Eliminar("BB") && hash.Buscar("Aa") != null && hash.Buscar("BB") == null, "Eliminar en colisión.");

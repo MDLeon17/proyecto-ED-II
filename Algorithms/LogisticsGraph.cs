@@ -103,8 +103,13 @@ public class LogisticsGraph
         return result;
     }
 
-    public RouteEdge? GetEdge(string fromId, string toId) =>
-        AdjacencyList.TryGetValue(fromId, out var edges) ? edges.FirstOrDefault(e => e.ToId == toId) : null;
+    public RouteEdge? GetEdge(string fromId, string toId)
+    {
+        if (!AdjacencyList.TryGetValue(fromId, out var edges)) return null;
+        for (int i = 0; i < edges.Count; i++)
+            if (edges[i].ToId == toId) return edges[i];
+        return null;
+    }
 
     public TraversalResult RunBFS(string startId, string endId)
     {
@@ -164,7 +169,9 @@ public class LogisticsGraph
         var ids = new ListaDinamica<string>();
         for (string? current = endId; current != null; current = parents[current]) ids.Add(current);
         ids.Reverse();
-        result.Path = new ListaDinamica<HubNode>(ids.Select(id => Nodes[id]));
+        var path = new ListaDinamica<HubNode>();
+        for (int i = 0; i < ids.Count; i++) path.Add(Nodes[ids[i]]);
+        result.Path = path;
         result.Success = true;
         for (var i = 0; i < ids.Count - 1; i++)
         {
