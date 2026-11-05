@@ -1,35 +1,62 @@
 # UFG ENVIOS
 
-Simulador de entregas entre los **24 municipios de Quetzaltenango**, hecho en C# con WPF y .NET 8 para Estructuras de Datos II.
+Simulador de envíos entre los **24 municipios de Quetzaltenango**, desarrollado en **C#, WPF y .NET 8** para Estructura de Datos II. Registra remitente y destinatario, busca paquetes por guía, autocompleta municipios y compara recorridos con rutas óptimas por distancia, costo o tiempo.
 
 ## Ejecutar
 
-Abre `UfgEnvios.sln` en Visual Studio con la carga de trabajo de desarrollo de escritorio .NET y presiona **F5**. También puedes usar:
+Requiere Windows y el SDK de .NET 8 o uno compatible. En Visual Studio, instala la carga de trabajo de desarrollo de escritorio .NET, abre `UfgEnvios.sln` y presiona F5. Desde PowerShell, en la raíz del repositorio:
 
 ```powershell
 dotnet run --project UfgEnvios.csproj
 ```
 
-Para verificar la navegación, el registro de pedidos, los 24 contornos y la animación simultánea, además de generar vistas previas de ambas pantallas:
+Al iniciar se carga `Data/Samples/logistica.json`, copiado automáticamente a la carpeta del ejecutable. No depende del directorio desde el que se abra la aplicación.
+
+## Funciones
+
+- **Registro:** alta y eliminación de paquetes con guía única, remitente, destinatario y municipios de origen/destino.
+- **Envío:** selecciona un paquete registrado y pulsa Simular envío. El botón **⋮** permite elegir BFS, DFS, comparación paralela o Dijkstra; para Dijkstra se elige Distancia, Costo o Tiempo.
+- **Historial:** conserva las simulaciones completadas durante la sesión, con ambas personas y el método usado.
+- **Consultas y datos:** busca una guía, escribe un prefijo como `san` o `gén`, consulta BFS/DFS/Dijkstra o verifica los grupos y la disponibilidad dirigida de una ruta. La búsqueda de guía selecciona el paquete para simularlo en Envío.
+- **Reemplazar datos desde JSON:** carga otro conjunto completo. Primero valida los datos y los contornos; si falla, conserva la sesión actual. Si tiene éxito, reemplaza los envíos y vacía el historial.
+
+Los registros y los cambios de estado se mantienen **en memoria**. Al cerrar y abrir, se vuelve a cargar el JSON; no se guarda automáticamente sobre el archivo.
+
+## Estructuras integradas
+
+| Estructura | Uso y justificación |
+|---|---|
+| Tabla hash propia | Buscar, insertar y eliminar paquetes por guía; encadenamiento y redimensionamiento. |
+| Grafo con listas de adyacencia propias | Municipios y rutas dirigidas o bidireccionales; BFS, DFS y Dijkstra. |
+| Union-Find propio | Componentes de conectividad débil y descarte de rutas entre grupos distintos. |
+| Trie propio | Autocompletar nombres desde un prefijo, ignorando tildes y mayúsculas. |
+| Lista dinámica, cola, conjunto y tabla de dispersión propios | Almacenamiento, BFS, visitas, índices, contornos, animación e historial. |
+
+No se usan `List<T>`, `Dictionary<TKey,TValue>`, `HashSet<T>`, `Queue<T>` ni `ObservableCollection<T>` como estructuras de la aplicación. Se usan arreglos, interfaces de enlace de WPF, LINQ y las colecciones internas de controles y geometrías de WPF.
+
+## Datos y consultas de prueba
+
+- [Datos de ejemplo](Data/Samples/logistica.json): **30 envíos**, 24 municipios y **44 relaciones**. Son 39 bidireccionales y 5 de un sentido, almacenadas como 83 arcos.
+- [Consultas ejecutables](Data/Samples/consultas.json): **40 consultas**, cinco para cada opción: hash, prefijo, BFS, DFS, Dijkstra por distancia/costo/tiempo y conectividad.
+- [Guía de pruebas y demostración](docs/PRUEBAS.md): entradas, resultados esperados y comandos.
+
+Los 30 registros principales son los **envíos**; los 24 municipios coinciden con el mapa existente. Las distancias (km), los costos (Q) y los tiempos (h) son simulados. Las flechas señalan rutas de un sentido; pasar el cursor sobre una conexión muestra sus pesos. No son instrucciones de navegación real.
+
+## Verificar
 
 ```powershell
-dotnet run --project Tests/MapRegionCheck.csproj -c Release -- "imagen ejemplo.jpg" "artifacts/PreviewComparativa.png"
+dotnet build UfgEnvios.sln -c Release
+dotnet run --project Tests/MapRegionCheck.csproj -c Release -- "imagen ejemplo.jpg" "artifacts/Verificacion.png"
 ```
 
-Una [vista previa de la comparativa](Assets/PreviewComparativa.png) muestra el resultado con una ruta BFS y otra DFS.
+La suite comprueba estructuras, datos inválidos, las 40 consultas, rutas dirigidas, pesos cero, municipios aislados y los óptimos de Dijkstra para los 576 pares de municipios y los tres pesos, usando Floyd-Warshall como referencia independiente. También prueba el registro, los contornos, la búsqueda visible, el Trie y las animaciones BFS/DFS y Dijkstra. Genera capturas en `artifacts/`.
 
-## Uso
+## Documentación
 
-1. Abre el **menú hamburguesa** de la esquina superior izquierda y elige **Simular envío** o **Registrar en tabla hash**. Cada sección tiene su propio formulario; cambiar de sección conserva los datos.
-2. En **Registrar en tabla hash**, escribe el cliente y selecciona el origen y el destino. Pulsa **Registrar en tabla hash** para guardar el pedido con una guía única y verlo en la tabla. Los pedidos se mantienen en memoria mientras la aplicación está abierta.
-3. Selecciona un pedido de la tabla y pulsa **Simular envío seleccionado** para cargar su guía y municipios en el simulador. También puedes elegirlo en la lista del simulador o simular una ruta libre.
-4. En **Simular envío**, elige origen y destino en el panel izquierdo o haz clic en dos municipios del mapa. La red completa permanece visible; los contornos de origen y destino se tiñen en azul y violeta y los demás municipios se atenúan.
-5. Selecciona BFS, DFS o **Comparar en paralelo**. La comparativa coloca dos mapas lado a lado, uno para cada algoritmo.
-6. Pulsa **Trazar y despachar**. El paquete avanza y la ruta se va dibujando por tramos. En comparativa, ambos vehículos arrancan a la vez y cada mapa muestra su progreso. Si cargaste un pedido registrado, al terminar se actualiza a **Entregado** en la tabla.
-7. Consulta escalas, kilómetros estimados y el registro de paradas. **Limpiar recorrido** prepara una nueva simulación.
+- [Manual técnico](docs/MANUAL_TECNICO.md): diseño, clases, integración, complejidades y decisiones.
+- [Manual de usuario](docs/MANUAL_USUARIO.md): pasos de cada pantalla.
+- [Pruebas](docs/PRUEBAS.md): consultas y demostración.
+- [Aportes del equipo](docs/APORTES.md): responsabilidades comunicadas por el equipo.
+- [Guion de exposición](docs/PRESENTACION.md): demostración de aproximadamente seis minutos.
 
-Cada municipio es un vértice del grafo. Las conexiones terrestres bidireccionales son aristas. BFS busca la menor cantidad de aristas, mientras DFS sigue una rama hasta el fondo. En comparativa, ambas rutas se ven por separado y la diferencia en tramos aparece en el análisis.
-
-La imagen `imagen ejemplo.jpg` que ya estaba en el proyecto sirve de referencia geográfica. Los marcadores numerados del 1 al 24 coinciden con los municipios de esa imagen; al pasar el cursor se muestra el nombre completo. La aplicación detecta sus límites claros y los tiñe según la selección. El logo vectorial está en `Assets/UfgEnviosLogo.svg` y se reproduce en la barra lateral. **Las conexiones, kilómetros y tiempos son datos simulados**: no son instrucciones de navegación, rutas viales verificadas ni tiempos de entrega reales. BFS tampoco optimiza necesariamente la suma de kilómetros.
-
-La lista de 24 municipios se contrastó con la [Mapoteca de Quetzaltenango del Sistema Nacional de Información Social](https://snis.mides.gob.gt/mapoteca/quetzaltenango/). Para la nueva interfaz se tomaron como referencia patrones de mapa, puntos de paso y seguimiento visibles en el [concepto de aplicación logística de Ramotion](https://www.ramotion.com/logistics-app-ui-ux-design-concept/).
+Repositorio configurado: [MDLeon17/proyecto-ED-II](https://github.com/MDLeon17/proyecto-ED-II), con visibilidad pública verificada el 4 de noviembre de 2026. Los cambios locales deben publicarse por los integrantes con sus commits reales antes de entregar.

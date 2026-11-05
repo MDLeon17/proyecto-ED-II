@@ -1,3 +1,4 @@
+using UfgEnvios.Algorithms;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -15,9 +16,9 @@ public sealed class MapRegionIndex
     private const int Width = 775;
     private const int Height = 780;
     private readonly int[] _labels = new int[Width * Height];
-    private readonly Dictionary<string, int> _municipalLabels = new();
-    private readonly HashSet<int> _allMunicipalLabels = new();
-    private readonly Dictionary<string, StreamGeometry> _contours = new();
+    private readonly TablaDispersion<string, int> _municipalLabels = new();
+    private readonly Conjunto<int> _allMunicipalLabels = new();
+    private readonly TablaDispersion<string, StreamGeometry> _contours = new();
 
     public MapRegionIndex(BitmapSource source, IEnumerable<HubNode> nodes)
     {
@@ -37,8 +38,8 @@ public sealed class MapRegionIndex
             return pixels[pixel] > 185 && pixels[pixel + 1] > 185 && pixels[pixel + 2] > 185;
         }
 
-        var sizes = new List<int> { 0 };
-        var queue = new Queue<int>();
+        var sizes = new ListaDinamica<int> { 0 };
+        var queue = new Cola<int>();
         for (var index = 0; index < _labels.Length; index++)
         {
             if (_labels[index] != 0 || !IsInterior(index)) continue;
@@ -84,7 +85,7 @@ public sealed class MapRegionIndex
     private void BuildContours(int outside)
     {
         var regions = new int[_labels.Length];
-        var pending = new Queue<int>();
+        var pending = new Cola<int>();
         for (var i = 0; i < regions.Length; i++)
         {
             if (!_allMunicipalLabels.Contains(_labels[i]) && _labels[i] != outside) continue;
@@ -104,7 +105,7 @@ public sealed class MapRegionIndex
 
         foreach (var (id, label) in _municipalLabels)
         {
-            var edges = new Dictionary<int, List<int>>();
+            var edges = new TablaDispersion<int, ListaDinamica<int>>();
             for (var y = 0; y < Height; y++)
             for (var x = 0; x < Width; x++)
             {
@@ -126,7 +127,7 @@ public sealed class MapRegionIndex
                 {
                     var start = edges.First().Key;
                     var current = start;
-                    var points = new List<Point>();
+                    var points = new ListaDinamica<Point>();
                     do
                     {
                         points.Add(new Point(current % (Width + 1), current / (Width + 1)));
@@ -143,9 +144,9 @@ public sealed class MapRegionIndex
                         var following = points[(i + 2) % points.Count];
                         return new Point((previous.X + 2 * p.X + following.X) / 4,
                             (previous.Y + 2 * p.Y + following.Y) / 4);
-                    }).ToList();
+                    }).ToArray();
                     context.BeginFigure(smooth[0], true, true);
-                    context.PolyLineTo(smooth.Skip(1).ToList(), true, false);
+                    context.PolyLineTo(smooth.Skip(1).ToArray(), true, false);
                 }
             }
             geometry.Freeze();
@@ -153,7 +154,7 @@ public sealed class MapRegionIndex
 
             void Add(int from, int to)
             {
-                if (!edges.TryGetValue(from, out var next)) edges[from] = next = new List<int>();
+                if (!edges.TryGetValue(from, out var next)) edges[from] = next = new ListaDinamica<int>();
                 next.Add(to);
             }
         }
@@ -200,11 +201,11 @@ public sealed class MapRegionIndex
         {
             var label = _labels[index];
             var pixel = index * 4;
-            if (label == originLabel)
+            if (origin != null && label == originLabel)
             {
                 buffer[pixel] = 181; buffer[pixel + 1] = 117; buffer[pixel + 2] = 42; buffer[pixel + 3] = 150;
             }
-            else if (label == destinationLabel)
+            else if (destination != null && label == destinationLabel)
             {
                 buffer[pixel] = 187; buffer[pixel + 1] = 96; buffer[pixel + 2] = 160; buffer[pixel + 3] = 150;
             }

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,28 +17,30 @@ public partial class MainWindow : Window
     private sealed class MapSurface(Canvas canvas)
     {
         public Canvas Canvas { get; } = canvas;
-        public Dictionary<string, Border> Markers { get; } = new();
-        public List<Path> ActiveOutlines { get; } = new();
-        public List<Path> ActiveSegments { get; } = new();
+        public TablaDispersion<string, Border> Markers { get; } = new();
+        public ListaDinamica<Path> ActiveOutlines { get; } = new();
+        public ListaDinamica<Path> ActiveSegments { get; } = new();
     }
 
+    // Historial e interfaz: aporte original de Juan Ulin, quien también realizó pruebas.
     private sealed class RegistroHistorial
     {
         public DateTime Fecha { get; init; }
         public string Guia { get; init; } = string.Empty;
         public string Cliente { get; init; } = string.Empty;
+        public string Destinatario { get; init; } = string.Empty;
         public string Origen { get; init; } = string.Empty;
         public string Destino { get; init; } = string.Empty;
         public string Metodo { get; init; } = string.Empty;
         public string Estado { get; init; } = string.Empty;
     }
 
-    private readonly LogisticsGraph _graph = new();
-    private readonly TablaHash _pedidos = new();
+    private LogisticsGraph _graph = new();
+    private TablaHash _pedidos = new();
     private Pedido? _pedidoActual;
 
-    private readonly ObservableCollection<string> _trackingLogs = new();
-    private readonly ObservableCollection<RegistroHistorial> _historialEnvios = new();
+    private readonly ListaDinamica<string> _trackingLogs = new();
+    private readonly ListaDinamica<RegistroHistorial> _historialEnvios = new();
 
     // Mapas originales.
     private readonly MapSurface _singleMap;
@@ -121,42 +123,37 @@ public partial class MainWindow : Window
 
         ConfigurarVistasYMenu();
 
-        foreach (var node in DefaultMapData.GetDefaultHubs())
-            _graph.AddNode(node);
-
-        foreach (var edge in DefaultMapData.GetDefaultRoutes())
+        try
         {
-            _graph.AddEdge(
-                edge.FromId,
-                edge.ToId,
-                edge.DistanceKm,
-                edge.Mode,
-                bidirectional: false);
+            var loaded = LogisticsDataLoader.Load(LogisticsDataLoader.DefaultPath);
+            _graph = loaded.Graph;
+            _pedidos = loaded.Orders;
+            _mapImage = new BitmapImage(new Uri("pack://application:,,,/UfgEnvios;component/imagen%20ejemplo.jpg", UriKind.Absolute));
+            _mapRegions = new MapRegionIndex(_mapImage, _graph.Nodes.Values);
         }
-
-        _mapImage = new BitmapImage(
-            new Uri(
-                "pack://application:,,,/UfgEnvios;component/imagen%20ejemplo.jpg",
-                UriKind.Absolute));
-
-        _mapRegions = new MapRegionIndex(
-            _mapImage,
-            _graph.Nodes.Values);
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(ex.Message, "No se pudieron cargar los datos", MessageBoxButton.OK, MessageBoxImage.Error);
+            Close();
+            return;
+        }
 
         var municipalities = _graph.Nodes.Values
             .OrderBy(node => node.Name)
-            .ToList();
+            .ToArray();
 
         CboOrigin.ItemsSource = municipalities;
         CboDestination.ItemsSource = municipalities;
         CboRegistrationOrigin.ItemsSource = municipalities;
         CboRegistrationDestination.ItemsSource = municipalities;
 
-        CboOrigin.SelectedItem = _graph.Nodes["QUE"];
-        CboRegistrationOrigin.SelectedItem = _graph.Nodes["QUE"];
-        _selectedOrigin = _graph.Nodes["QUE"];
+        var initialOrigin = municipalities.FirstOrDefault(n => n.Id == "QUE") ?? municipalities[0];
+        CboOrigin.SelectedItem = initialOrigin;
+        CboRegistrationOrigin.SelectedItem = initialOrigin;
+        _selectedOrigin = initialOrigin;
 
         _initialized = true;
+        ConfigurarConsultas();
 
         GenerateTrackingNumber();
         GenerateRegistrationTrackingNumber();
@@ -522,7 +519,7 @@ public partial class MainWindow : Window
             canvas.Children.Add(tint);
         }
 
-        var drawn = new HashSet<string>();
+        var drawn = new Conjunto<string>();
 
         foreach (var edges in _graph.AdjacencyList.Values)
         foreach (var edge in edges)
@@ -538,6 +535,9 @@ public partial class MainWindow : Window
 
             var outline = CreateRoad(from, to, Colors.White, 4);
             var road = CreateRoad(from, to, RoadColor, 1.65);
+            road.ToolTip = $"{from.Name} {(edge.Bidirectional ? "↔" : "→")} {to.Name}: " +
+                $"{edge.DistanceKm:N1} km · Q {edge.Cost:N2} · {edge.EstimatedHours:N2} h";
+            road.IsHitTestVisible = true;
 
             outline.Opacity = selectedPair ? 0.55 : 1;
             road.Opacity = selectedPair ? 0.32 : 0.6;
@@ -547,6 +547,20 @@ public partial class MainWindow : Window
 
             canvas.Children.Add(outline);
             canvas.Children.Add(road);
+            if (!edge.Bidirectional)
+            {
+                var arrow = new TextBlock
+                {
+                    Text = "➤", FontSize = 15, Foreground = new SolidColorBrush(RoadColor),
+                    ToolTip = road.ToolTip,
+                    RenderTransform = new RotateTransform(Math.Atan2(to.Y - from.Y, to.X - from.X) * 180 / Math.PI, 7, 7)
+                };
+                var control = ControlPoint(from, to);
+                Canvas.SetLeft(arrow, (from.X + 2 * control.X + to.X) / 4 - 7);
+                Canvas.SetTop(arrow, (from.Y + 2 * control.Y + to.Y) / 4 - 7);
+                Panel.SetZIndex(arrow, 4);
+                canvas.Children.Add(arrow);
+            }
         }
 
         foreach (var node in _graph.Nodes.Values)
@@ -762,8 +776,11 @@ public partial class MainWindow : Window
 
             var paralelo = RbCompare.IsChecked == true;
             var usarDfs = RbDFS.IsChecked == true;
+            var usarDijkstra = RbDijkstra.IsChecked == true;
+            var weight = (RouteWeight)Math.Max(0, CboWeight.SelectedIndex);
+            var optimal = usarDijkstra ? _graph.RunDijkstra(pedido.OrigenId, pedido.DestinoId, weight) : null;
 
-            TraversalResult? bfs = paralelo || !usarDfs
+            TraversalResult? bfs = paralelo || (!usarDfs && !usarDijkstra)
                 ? _graph.RunBFS(pedido.OrigenId, pedido.DestinoId)
                 : null;
 
@@ -771,7 +788,7 @@ public partial class MainWindow : Window
                 ? _graph.RunDFS(pedido.OrigenId, pedido.DestinoId)
                 : null;
 
-            if (bfs?.Success == false || dfs?.Success == false)
+            if (bfs?.Success == false || dfs?.Success == false || optimal?.Success == false)
             {
                 TxtSystemStatus.Text = "SIN RUTA DISPONIBLE";
                 CambiarEstadoPedido(EstadoPedido.SinRuta);
@@ -783,6 +800,7 @@ public partial class MainWindow : Window
             }
 
             ShowMetrics(bfs, dfs);
+            TxtDijkstraInfo.Text = optimal == null ? "" : $"Dijkstra · {CboWeight.Text}: {optimal.TotalDistanceKm:N1} km · Q {optimal.TotalCost:N2} · {optimal.TotalEstimatedHours:N2} h";
             CambiarEstadoPedido(EstadoPedido.EnTransito);
 
             if (paralelo)
@@ -814,16 +832,16 @@ public partial class MainWindow : Window
             }
             else
             {
-                var result = (usarDfs ? dfs : bfs)!;
+                var result = (usarDijkstra ? optimal : usarDfs ? dfs : bfs)!;
                 var color = usarDfs ? DfsColor : BfsColor;
-                var name = usarDfs ? "DFS" : "BFS";
+                var name = usarDijkstra ? $"Dijkstra ({CboWeight.Text})" : usarDfs ? "DFS" : "BFS";
 
                 TxtWinnerBadge.Text = $"Recorrido {name}";
 
                 TxtViabilityExplanation.Text =
                     $"{result.TotalHops} tramos · " +
                     $"{result.TotalDistanceKm:N0} km · " +
-                    $"{result.TotalEstimatedHours:N1} h estimadas.";
+                    $"{result.TotalEstimatedHours:N2} h · Q {result.TotalCost:N2}.";
 
                 PrepareRoute(singleMap, result, color);
 
@@ -852,11 +870,12 @@ public partial class MainWindow : Window
                 Fecha = DateTime.Now,
                 Guia = pedido.Guia,
                 Cliente = pedido.Cliente,
+                Destinatario = pedido.Destinatario,
                 Origen = _graph.Nodes[pedido.OrigenId].Name,
                 Destino = _graph.Nodes[pedido.DestinoId].Name,
                 Metodo = paralelo
                     ? "Paralelo (BFS + DFS)"
-                    : usarDfs ? "DFS" : "BFS",
+                    : usarDijkstra ? $"Dijkstra ({CboWeight.Text})" : usarDfs ? "DFS" : "BFS",
                 Estado = pedido.EstadoTexto
             });
 
@@ -912,6 +931,7 @@ public partial class MainWindow : Window
         }
     }
 
+    // Grafos y animación de recorridos: aporte original de Fernando Méndez.
     private async Task AnimateRouteAsync(
         MapSurface surface,
         TraversalResult result,
@@ -1072,25 +1092,26 @@ public partial class MainWindow : Window
         TraversalResult? dfs)
     {
         TxtBfsHops.Text = bfs == null
-            ? "— tramos"
-            : $"{bfs.TotalHops} tramos";
+            ? ""
+            : $"BFS · {bfs.TotalHops} tramos";
 
         TxtBfsDist.Text = bfs == null
-            ? "— km"
-            : $"{bfs.TotalDistanceKm:N0} km · {bfs.TotalEstimatedHours:N1} h";
+            ? ""
+            : $"{bfs.TotalDistanceKm:N1} km · {bfs.TotalEstimatedHours:N2} h · Q {bfs.TotalCost:N2}";
 
         TxtDfsHops.Text = dfs == null
-            ? "— tramos"
-            : $"{dfs.TotalHops} tramos";
+            ? ""
+            : $"DFS · {dfs.TotalHops} tramos";
 
         TxtDfsDist.Text = dfs == null
-            ? "— km"
-            : $"{dfs.TotalDistanceKm:N0} km · {dfs.TotalEstimatedHours:N1} h";
+            ? ""
+            : $"{dfs.TotalDistanceKm:N1} km · {dfs.TotalEstimatedHours:N2} h · Q {dfs.TotalCost:N2}";
     }
 
     private void ClearPresentation()
     {
         ShowMetrics(null, null);
+        TxtDijkstraInfo.Text = "";
 
         TxtWinnerBadge.Text =
             "Selecciona un paquete por su número de guía";
@@ -1131,6 +1152,9 @@ public partial class MainWindow : Window
 
         RbBFS.IsEnabled = enabled;
         RbDFS.IsEnabled = enabled;
+        RbDijkstra.IsEnabled = enabled;
+        CboWeight.IsEnabled = enabled;
+        _navConsultas.IsEnabled = enabled;
         RbCompare.IsEnabled = enabled;
 
         ListPedidos.IsEnabled = enabled;
@@ -1159,6 +1183,7 @@ public partial class MainWindow : Window
         ScrollTrackingLogs.ScrollToBottom();
     }
 
+    // Tabla hash y registro de paquetes: aporte original de Gerardo Rivera.
     private void BtnRegistrarPedido_Click(
         object sender,
         RoutedEventArgs e)
@@ -1182,10 +1207,11 @@ public partial class MainWindow : Window
 
         var cliente = TxtCliente.Text.Trim();
 
-        if (cliente == "")
+        var destinatario = TxtDestinatario.Text.Trim();
+        if (cliente == "" || destinatario == "")
         {
             ShowRegistrationFeedback(
-                "Escribe el nombre del cliente.",
+                "Escribe el remitente y el destinatario.",
                 false);
 
             TxtCliente.Focus();
@@ -1196,6 +1222,7 @@ public partial class MainWindow : Window
         {
             Guia = TxtRegistrationTrackingNumber.Text,
             Cliente = cliente,
+            Destinatario = destinatario,
             OrigenId = origin.Id,
             DestinoId = destination.Id
         };
@@ -1210,6 +1237,7 @@ public partial class MainWindow : Window
         }
 
         TxtCliente.Clear();
+        TxtDestinatario.Clear();
 
         GenerateRegistrationTrackingNumber();
         RefrescarPedidos();
@@ -1264,10 +1292,11 @@ public partial class MainWindow : Window
         {
             pedido.Guia,
             pedido.Cliente,
+            pedido.Destinatario,
             Origen = _graph.Nodes[pedido.OrigenId].Name,
             Destino = _graph.Nodes[pedido.DestinoId].Name,
             Estado = pedido.EstadoTexto
-        }).ToList();
+        }).ToArray();
 
         TablaPedidos.SelectedValue = selectedGuide;
 
@@ -1324,6 +1353,7 @@ public partial class MainWindow : Window
         }
 
         SetControlsEnabled(_runCts == null);
+        ActualizarConsultas();
     }
 
     private void BtnReset_Click(
@@ -1400,6 +1430,16 @@ public partial class MainWindow : Window
             TextBlock.TextProperty,
             origen,
             ruta);
+
+        var style = new Style(typeof(TextBlock));
+        var empty = new DataTrigger
+        {
+            Binding = new System.Windows.Data.Binding(ruta) { Source = origen },
+            Value = ""
+        };
+        empty.Setters.Add(new Setter(VisibilityProperty, Visibility.Collapsed));
+        style.Triggers.Add(empty);
+        texto.Style = style;
 
         return texto;
     }
@@ -1646,6 +1686,7 @@ public partial class MainWindow : Window
             TxtBfsDist,
             TxtDfsHops,
             TxtDfsDist,
+            TxtDijkstraInfo,
             TxtWinnerBadge,
             TxtViabilityExplanation,
             TxtEventsCount
@@ -1716,7 +1757,7 @@ public partial class MainWindow : Window
         _envioOpciones.Width = 46;
         _envioOpciones.Height = 44;
         _envioOpciones.Margin = new Thickness(8, 0, 0, 0);
-        _envioOpciones.ToolTip = "BFS, DFS o paralelo";
+        _envioOpciones.ToolTip = "BFS, DFS, Dijkstra o paralelo";
 
         EnlazarVista(
             _envioOpciones,
@@ -1764,14 +1805,16 @@ public partial class MainWindow : Window
         {
             "BFS · menos tramos",
             "DFS · profundidad",
-            "Paralelo · BFS y DFS"
+            "Paralelo · BFS y DFS",
+            "Dijkstra · ruta óptima"
         };
 
         var originales = new[]
         {
             RbBFS,
             RbDFS,
-            RbCompare
+            RbCompare,
+            RbDijkstra
         };
 
         for (var i = 0; i < originales.Length; i++)
@@ -1798,6 +1841,12 @@ public partial class MainWindow : Window
 
             opciones.Children.Add(radio);
         }
+
+        opciones.Children.Add(TextoVista("OPTIMIZAR DIJKSTRA", 11));
+        var pesos = new ComboBox { ItemsSource = new[] { "Distancia", "Costo", "Tiempo" }, Margin = new Thickness(0, 6, 0, 10) };
+        EnlazarVista(pesos, System.Windows.Controls.Primitives.Selector.SelectedIndexProperty, CboWeight, "SelectedIndex", true);
+        EnlazarVista(pesos, IsEnabledProperty, CboWeight, "IsEnabled");
+        opciones.Children.Add(pesos);
 
         opciones.Children.Add(
             TextoVista("VELOCIDAD", 11));
@@ -1886,6 +1935,7 @@ public partial class MainWindow : Window
             "Fecha",
             "Guia",
             "Cliente",
+            "Destinatario",
             "Origen",
             "Destino",
             "Metodo",
@@ -1896,7 +1946,8 @@ public partial class MainWindow : Window
         {
             "Fecha",
             "Guía",
-            "Cliente",
+            "Remitente",
+            "Destinatario",
             "Origen",
             "Destino",
             "Recorrido",
@@ -2041,6 +2092,8 @@ public partial class MainWindow : Window
         _historialVista.Visibility = vista == "Historial"
             ? Visibility.Visible
             : Visibility.Collapsed;
+        _consultasVista.Visibility = vista == "Consultas" ? Visibility.Visible : Visibility.Collapsed;
+        _navConsultas.IsChecked = vista == "Consultas";
 
         NavRegistration.IsChecked = registro;
         NavSimulation.IsChecked = envio;

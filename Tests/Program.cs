@@ -8,12 +8,14 @@ using System.Windows.Threading;
 using UfgEnvios.Data;
 using UfgEnvios.Models;
 
+// Pruebas, interfaz e historial: responsabilidades de Juan Ulin (ver docs/APORTES.md).
 internal static class Program
 {
     [STAThread]
     private static void Main(string[] args)
     {
         if (args.Length is < 1 or > 2) throw new ArgumentException("Indica la ruta de imagen ejemplo.jpg y, opcionalmente, una vista previa PNG.");
+        CoreChecks.Run();
         var nodes = DefaultMapData.GetDefaultHubs();
         var image = new BitmapImage(new Uri(Path.GetFullPath(args[0])));
         var regions = new MapRegionIndex(image, nodes);
@@ -57,16 +59,16 @@ internal static class Program
         var navigation = (System.Windows.Controls.Primitives.Popup)window.FindName("NavigationMenu")!;
         var registrationNavigation = (RadioButton)window.FindName("NavRegistration")!;
         var simulationNavigation = (RadioButton)window.FindName("NavSimulation")!;
-        if (simulationView.Visibility != Visibility.Visible || registrationView.Visibility != Visibility.Collapsed)
-            throw new Exception("La pantalla inicial no es la simulación.");
+        if (simulationView.Visibility != Visibility.Collapsed || registrationView.Visibility != Visibility.Visible)
+            throw new Exception("La pantalla inicial no es el registro.");
         registrationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         if (registrationView.Visibility != Visibility.Visible || simulationView.Visibility != Visibility.Collapsed ||
             registrationNavigation.IsChecked != true || navigation.IsOpen)
             throw new Exception("El menú no abrió el registro de manera independiente.");
         if (args.Length == 2)
         {
-            SavePreview(layout, Path.ChangeExtension(args[1], ".registro-vacio.png"));
-            SavePreview((FrameworkElement)navigation.Child, Path.ChangeExtension(args[1], ".menu.png"), 310, 220);
+            SavePreview(layout, Path.ChangeExtension(args[1], ".registro-inicial.png"));
+            SavePreview((FrameworkElement)navigation.Child, Path.ChangeExtension(args[1], ".menu.png"), 310, 320);
         }
         var registrationOrigin = (ComboBox)window.FindName("CboRegistrationOrigin")!;
         var registrationDestination = (ComboBox)window.FindName("CboRegistrationDestination")!;
@@ -77,15 +79,17 @@ internal static class Program
         var simulatedGuide = (TextBlock)window.FindName("TxtTrackingNumber")!;
         var registrationGuide = (TextBlock)window.FindName("TxtRegistrationTrackingNumber")!;
         var initialSimulatedGuide = simulatedGuide.Text;
+        var initialCount = orders.Items.Count;
         client.Text = "Cliente de prueba";
+        ((TextBox)window.FindName("TxtDestinatario")!).Text = "Destinatario de prueba";
         register.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        if (orders.Items.Count != 0 || orderCount.Text != "0 pedidos")
+        if (orders.Items.Count != initialCount || orderCount.Text != $"{initialCount} pedidos")
             throw new Exception("Se registró un pedido sin destino.");
         registrationOrigin.SelectedItem = registrationOrigin.Items.Cast<HubNode>().First(node => node.Id == "QUE");
         registrationDestination.SelectedItem = registrationDestination.Items.Cast<HubNode>().First(node => node.Id == "SAL");
         var registeredGuide = registrationGuide.Text;
         register.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        if (orders.Items.Count != 1 || orderCount.Text != "1 pedido" || simulatedGuide.Text != initialSimulatedGuide ||
+        if (orders.Items.Count != initialCount + 1 || orderCount.Text != $"{initialCount + 1} pedidos" || simulatedGuide.Text != initialSimulatedGuide ||
             ((ComboBox)window.FindName("CboDestination")!).SelectedItem != null || registrationGuide.Text == registeredGuide)
             throw new Exception("El registro no guardó el pedido de forma independiente de la simulación.");
         client.Text = "Borrador de otro cliente";
@@ -101,7 +105,7 @@ internal static class Program
         var simulateOrder = (Button)window.FindName("BtnSimularPedido")!;
         if (!simulateOrder.IsEnabled) throw new Exception("No se habilitó la simulación del pedido registrado.");
         simulateOrder.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        if (simulationView.Visibility != Visibility.Visible || registrationView.Visibility != Visibility.Collapsed ||
+        if (simulationView.Visibility != Visibility.Collapsed || registrationView.Visibility != Visibility.Collapsed ||
             simulatedGuide.Text != registeredGuide || ((ComboBox)window.FindName("CboDestination")!).SelectedItem is not HubNode { Id: "SAL" })
             throw new Exception("No se cargó el pedido registrado en el menú de simulación.");
         var compare = (RadioButton)window.FindName("RbCompare")!;
@@ -137,7 +141,7 @@ internal static class Program
         if (timedOut || ((ProgressBar)window.FindName("BfsProgress")!).Value != 100 ||
             ((ProgressBar)window.FindName("DfsProgress")!).Value != 100)
             throw new Exception("La comparativa en paralelo no terminó correctamente.");
-        var delivered = ((ComboBox)window.FindName("ListPedidos")!).Items.Cast<Pedido>().Single();
+        var delivered = ((ComboBox)window.FindName("ListPedidos")!).Items.Cast<Pedido>().Single(p => p.Guia == registeredGuide);
         if (delivered.Guia != registeredGuide || delivered.Estado != EstadoPedido.Entregado)
             throw new Exception("La simulación no actualizó el pedido de la tabla hash.");
         if (args.Length == 2)
@@ -147,8 +151,48 @@ internal static class Program
             SavePreview(layout, args[1]);
             SavePreview(layout, Path.ChangeExtension(args[1], ".simulacion-minimo.png"), 1200, 720);
         }
+        // Se prueba la integración visible: Trie -> municipios; hash -> paquete; Dijkstra -> entrega.
+        ((RadioButton)window.FindName("NavConsultas")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var prefix = (TextBox)window.FindName("ConsultaPrefijo")!;
+        prefix.Text = "gén";
+        var suggestions = (ListBox)window.FindName("ConsultaSugerencias")!;
+        if (suggestions.Items.Count != 1 || suggestions.Items[0] is not HubNode { Id: "GEN" })
+            throw new Exception("El autocompletado visible no usa el Trie.");
+        suggestions.SelectedIndex = 0;
+        if (((ComboBox)window.FindName("ConsultaDestino")!).SelectedItem is not HubNode { Id: "GEN" })
+            throw new Exception("El autocompletado no cargó el municipio como destino.");
+        ((TextBox)window.FindName("ConsultaGuia")!).Text = registeredGuide;
+        ((Button)window.FindName("BtnBuscarGuia")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var output = (TextBox)window.FindName("ConsultaResultado")!;
+        if (!output.Text.Contains("Destinatario de prueba") || simulatedGuide.Text != registeredGuide)
+            throw new Exception("La búsqueda hash no cargó el envío y sus dos personas.");
+        ((Button)window.FindName("BtnConsultarCosto")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (!output.Text.Contains("Dijkstra") || !output.Text.Contains("Q "))
+            throw new Exception("La consulta Dijkstra no muestra el costo.");
+        if (args.Length == 2)
+        {
+            SavePreview(layout, Path.ChangeExtension(args[1], ".consultas.png"));
+            SavePreview(layout, Path.ChangeExtension(args[1], ".consultas-minimo.png"), 1200, 720);
+        }
+        simulationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        ((RadioButton)window.FindName("RbDijkstra")!).IsChecked = true;
+        ((ComboBox)window.FindName("CboWeight")!).SelectedIndex = 1;
+        ((Button)window.FindName("BtnDispatch")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var optimalFrame = new DispatcherFrame();
+        var optimalTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+        var optimalDeadline = DateTime.UtcNow.AddSeconds(8);
+        optimalTimer.Tick += (_, _) =>
+        {
+            if (((TextBlock)window.FindName("TxtSystemStatus")!).Text == "ENTREGADO" || DateTime.UtcNow >= optimalDeadline)
+                optimalFrame.Continue = false;
+        };
+        optimalTimer.Start(); Dispatcher.PushFrame(optimalFrame); optimalTimer.Stop();
+        if (((TextBlock)window.FindName("TxtSystemStatus")!).Text != "ENTREGADO" ||
+            !((TextBlock)window.FindName("TxtDijkstraInfo")!).Text.Contains("Q "))
+            throw new Exception("La animación Dijkstra no completó la entrega.");
+        if (args.Length == 2) SavePreview(layout, Path.ChangeExtension(args[1], ".dijkstra.png"));
         window.Close();
-        Console.WriteLine($"Verificados el menú, el registro independiente, el envío de un pedido, {nodes.Count} contornos y la comparativa BFS/DFS en paralelo.");
+        Console.WriteLine($"Verificados menú, registro, remitente/destinatario, búsqueda hash, Trie, {nodes.Length} contornos, BFS/DFS en paralelo y animación Dijkstra.");
     }
 
     private static void SavePreview(FrameworkElement layout, string path, int width = 1440, int height = 900)

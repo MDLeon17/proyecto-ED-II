@@ -6,6 +6,10 @@
         WindowStartupLocation="CenterScreen" Background="#F3F6F6"
         FontFamily="Segoe UI" FontSize="13" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
+        <Style x:Key="PedidoTexto" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        </Style>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -234,6 +238,8 @@
                         <TextBlock Text="MÉTODO DE RECORRIDO" Style="{StaticResource SectionTitle}"/>
                         <RadioButton x:Name="RbBFS" GroupName="RouteAlgorithm" Content="BFS · menos tramos" IsChecked="True" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
                         <RadioButton x:Name="RbDFS" GroupName="RouteAlgorithm" Content="DFS · profundidad" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <RadioButton x:Name="RbDijkstra" GroupName="RouteAlgorithm" Content="Dijkstra · ruta óptima" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CboWeight" SelectedIndex="0" Margin="0,0,0,8"><ComboBoxItem Content="Distancia"/><ComboBoxItem Content="Costo"/><ComboBoxItem Content="Tiempo"/></ComboBox>
                         <RadioButton x:Name="RbCompare" GroupName="RouteAlgorithm" Content="Comparar en paralelo" Checked="RouteMode_Checked" Style="{StaticResource AlgorithmOption}" FontWeight="SemiBold" Margin="0,0,0,12"/>
                         <TextBlock Text="Velocidad de la simulación" Style="{StaticResource FieldLabel}"/>
                         <Grid>
@@ -261,6 +267,7 @@
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock x:Name="TxtWinnerBadge" Text="Elige municipios y traza una ruta" Foreground="#8FE3D6" FontWeight="SemiBold" Margin="0,13,0,5" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="TxtDijkstraInfo" Foreground="#8FE3D6" TextWrapping="Wrap" FontSize="11"/>
                                 <TextBlock x:Name="TxtViabilityExplanation" Text="Aquí aparecerá el análisis de la ruta." Foreground="#C4D4D6" FontSize="11" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
@@ -406,8 +413,10 @@
                                             Background="Transparent" Foreground="#8FE3D6" BorderThickness="0" Cursor="Hand" FontSize="20" Padding="5,0"/>
                                 </Grid>
                             </Border>
-                            <TextBlock Text="Nombre del cliente" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Nombre del remitente" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="TxtCliente" Height="39" Padding="9,7" Background="White" Foreground="#122D38" BorderThickness="0" MaxLength="120"/>
+                            <TextBlock Text="DESTINATARIO" Style="{StaticResource FieldLabel}" Margin="0,12,0,7"/>
+                            <TextBox x:Name="TxtDestinatario" Height="39" Padding="9,7" Background="White" Foreground="#122D38" BorderThickness="0" MaxLength="120"/>
                             <TextBlock Text="Municipio de origen" Style="{StaticResource FieldLabel}" Margin="0,18,0,6"/>
                             <ComboBox x:Name="CboRegistrationOrigin" Style="{StaticResource RouteCombo}"/>
                             <TextBlock Text="Municipio de destino" Style="{StaticResource FieldLabel}" Margin="0,18,0,6"/>
@@ -507,9 +516,10 @@
                                 </DataGrid.CellStyle>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Guía" Binding="{Binding Guia}" Width="165"/>
-                                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="*" MinWidth="110"/>
-                                    <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="*" MinWidth="130"/>
-                                    <DataGridTextColumn Header="Destino" Binding="{Binding Destino}" Width="*" MinWidth="130"/>
+                                    <DataGridTextColumn Header="Remitente" Binding="{Binding Cliente}" Width="*" MinWidth="110" ElementStyle="{StaticResource PedidoTexto}"/>
+                                    <DataGridTextColumn Header="Destinatario" Binding="{Binding Destinatario}" Width="*" MinWidth="110" ElementStyle="{StaticResource PedidoTexto}"/>
+                                    <DataGridTextColumn Header="Origen" Binding="{Binding Origen}" Width="*" MinWidth="130" ElementStyle="{StaticResource PedidoTexto}"/>
+                                    <DataGridTextColumn Header="Destino" Binding="{Binding Destino}" Width="*" MinWidth="130" ElementStyle="{StaticResource PedidoTexto}"/>
                                     <DataGridTemplateColumn Header="Estado" Width="135" SortMemberPath="Estado">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>

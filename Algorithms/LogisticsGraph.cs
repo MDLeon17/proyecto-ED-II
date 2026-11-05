@@ -3,25 +3,91 @@ using UfgEnvios.Models;
 
 namespace UfgEnvios.Algorithms;
 
+// Módulo original de grafos: Fernando Méndez (ver docs/APORTES.md).
 public class LogisticsGraph
 {
-    public Dictionary<string, HubNode> Nodes { get; } = new();
-    public Dictionary<string, List<RouteEdge>> AdjacencyList { get; } = new();
+    public TablaDispersion<string, HubNode> Nodes { get; } = new();
+    public TablaDispersion<string, ListaDinamica<RouteEdge>> AdjacencyList { get; } = new();
+    public Trie NameIndex { get; } = new();
+    private UnionFind? _components;
+    private readonly TablaDispersion<string, int> _nodeIndexes = new();
 
     public void AddNode(HubNode node)
     {
         if (Nodes.ContainsKey(node.Id)) return;
         Nodes.Add(node.Id, node);
-        AdjacencyList.Add(node.Id, new List<RouteEdge>());
+        _nodeIndexes.Add(node.Id, _nodeIndexes.Count);
+        NameIndex.Insert(node);
+        _components = null;
+        AdjacencyList.Add(node.Id, new ListaDinamica<RouteEdge>());
     }
 
-    public void AddEdge(string fromId, string toId, double distanceKm, TransportMode mode, bool bidirectional = true)
+    public void AddEdge(string fromId, string toId, double distanceKm, TransportMode mode, bool bidirectional = true,
+        double? cost = null, double? estimatedHours = null)
     {
         if (!Nodes.ContainsKey(fromId) || !Nodes.ContainsKey(toId))
             throw new ArgumentException("La conexión debe unir municipios existentes.");
-        AdjacencyList[fromId].Add(new RouteEdge { FromId = fromId, ToId = toId, DistanceKm = distanceKm, Mode = mode });
+        double routeCost = cost ?? Math.Round(distanceKm * 2.5, 2);
+        double hours = estimatedHours ?? Math.Round(distanceKm / 35.0 + 0.15, 2);
+        if (!double.IsFinite(distanceKm) || distanceKm < 0 || !double.IsFinite(routeCost) || routeCost < 0 ||
+            !double.IsFinite(hours) || hours < 0) throw new ArgumentException("Los pesos deben ser finitos y no negativos.");
+        if (fromId == toId || GetEdge(fromId, toId) != null || (bidirectional && GetEdge(toId, fromId) != null))
+            throw new ArgumentException("La ruta está repetida o une un municipio consigo mismo.");
+        AdjacencyList[fromId].Add(new RouteEdge { FromId = fromId, ToId = toId, DistanceKm = distanceKm, Mode = mode,
+            Cost = routeCost, EstimatedHours = hours, Bidirectional = bidirectional });
         if (bidirectional)
-            AdjacencyList[toId].Add(new RouteEdge { FromId = toId, ToId = fromId, DistanceKm = distanceKm, Mode = mode });
+            AdjacencyList[toId].Add(new RouteEdge { FromId = toId, ToId = fromId, DistanceKm = distanceKm, Mode = mode,
+                Cost = routeCost, EstimatedHours = hours, Bidirectional = true });
+        _components = null;
+    }
+
+    public int ComponentCount { get { EnsureComponents(); return _components!.ComponentCount; } }
+    public bool AreWeaklyConnected(string a, string b)
+    {
+        if (!_nodeIndexes.ContainsKey(a) || !_nodeIndexes.ContainsKey(b)) return false;
+        EnsureComponents();
+        return _components!.Connected(_nodeIndexes[a], _nodeIndexes[b]);
+    }
+    private void EnsureComponents()
+    {
+        if (_components != null) return;
+        _components = new UnionFind(Nodes.Count);
+        foreach (var edges in AdjacencyList.Values)
+        foreach (var edge in edges) _components.Union(_nodeIndexes[edge.FromId], _nodeIndexes[edge.ToId]);
+    }
+
+    // Selección lineal del mínimo: O(V² + E), apropiada para los 24 municipios.
+    public TraversalResult RunDijkstra(string startId, string endId, RouteWeight weight = RouteWeight.Distance)
+    {
+        var timer = Stopwatch.StartNew();
+        string criterion = weight switch { RouteWeight.Cost => "costo", RouteWeight.Time => "tiempo", _ => "distancia" };
+        var result = new TraversalResult { AlgorithmName = $"Dijkstra · {criterion}" };
+        if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId) || !AreWeaklyConnected(startId, endId)) return result;
+        var distances = new TablaDispersion<string, double>();
+        var parents = new TablaDispersion<string, string?> { [startId] = null };
+        var settled = new Conjunto<string>();
+        foreach (var id in Nodes.Keys) distances[id] = double.PositiveInfinity;
+        distances[startId] = 0;
+        while (true)
+        {
+            string? current = null;
+            double best = double.PositiveInfinity;
+            foreach (var id in Nodes.Keys)
+                if (!settled.Contains(id) && distances[id] < best) { current = id; best = distances[id]; }
+            if (current == null) break;
+            settled.Add(current);
+            result.VisitedOrder.Add(Nodes[current]);
+            if (current == endId) break;
+            foreach (var edge in AdjacencyList[current])
+            {
+                double candidate = best + edge.Weight(weight);
+                if (settled.Contains(edge.ToId) || candidate >= distances[edge.ToId]) continue;
+                distances[edge.ToId] = candidate;
+                parents[edge.ToId] = current;
+            }
+        }
+        CompleteResult(result, parents, endId, timer);
+        return result;
     }
 
     public RouteEdge? GetEdge(string fromId, string toId) =>
@@ -31,9 +97,9 @@ public class LogisticsGraph
     {
         var timer = Stopwatch.StartNew();
         var result = new TraversalResult { AlgorithmName = "BFS · búsqueda en anchura" };
-        if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId)) return result;
-        var queue = new Queue<string>();
-        var parents = new Dictionary<string, string?> { [startId] = null };
+        if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId) || !AreWeaklyConnected(startId, endId)) return result;
+        var queue = new Cola<string>();
+        var parents = new TablaDispersion<string, string?> { [startId] = null };
         queue.Enqueue(startId);
         result.VisitedOrder.Add(Nodes[startId]);
         while (queue.Count > 0)
@@ -56,9 +122,9 @@ public class LogisticsGraph
     {
         var timer = Stopwatch.StartNew();
         var result = new TraversalResult { AlgorithmName = "DFS · búsqueda en profundidad" };
-        if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId)) return result;
-        var visited = new HashSet<string>();
-        var parents = new Dictionary<string, string?> { [startId] = null };
+        if (!Nodes.ContainsKey(startId) || !Nodes.ContainsKey(endId) || !AreWeaklyConnected(startId, endId)) return result;
+        var visited = new Conjunto<string>();
+        var parents = new TablaDispersion<string, string?> { [startId] = null };
         bool Visit(string id)
         {
             visited.Add(id);
@@ -77,23 +143,25 @@ public class LogisticsGraph
         return result;
     }
 
-    private void CompleteResult(TraversalResult result, Dictionary<string, string?> parents, string endId, Stopwatch timer)
+    private void CompleteResult(TraversalResult result, TablaDispersion<string, string?> parents, string endId, Stopwatch timer)
     {
         timer.Stop();
         result.ExecutionTimeMs = timer.Elapsed.TotalMilliseconds;
         if (!parents.ContainsKey(endId)) return;
-        var ids = new List<string>();
+        var ids = new ListaDinamica<string>();
         for (string? current = endId; current != null; current = parents[current]) ids.Add(current);
         ids.Reverse();
-        result.Path = ids.Select(id => Nodes[id]).ToList();
+        result.Path = new ListaDinamica<HubNode>(ids.Select(id => Nodes[id]));
         result.Success = true;
         for (var i = 0; i < ids.Count - 1; i++)
         {
             var edge = GetEdge(ids[i], ids[i + 1])!;
             result.TotalDistanceKm += edge.DistanceKm;
             result.TotalEstimatedHours += edge.EstimatedHours;
+            result.TotalCost += edge.Cost;
         }
-        result.TotalEstimatedHours = Math.Round(result.TotalEstimatedHours, 1);
+        result.TotalEstimatedHours = Math.Round(result.TotalEstimatedHours, 2);
+        result.TotalCost = Math.Round(result.TotalCost, 2);
     }
 
     public ViabilityReport AnalyzeViability(TraversalResult bfs, TraversalResult dfs)
@@ -110,7 +178,7 @@ public class LogisticsGraph
         report.SummaryHeadline = $"BFS: {bfs.TotalHops} tramos · DFS: {dfs.TotalHops} tramos.";
         report.DetailedLogisticsAnalysis = $"BFS garantiza la menor cantidad de tramos ({bfs.TotalHops}); DFS encontró {dfs.TotalHops}. " +
             $"Distancias simuladas: {bfs.TotalDistanceKm:N0} km y {dfs.TotalDistanceKm:N0} km. " +
-            "BFS no garantiza la menor distancia en kilómetros; para optimizar pesos se necesitaría Dijkstra.";
+            "BFS minimiza tramos; selecciona Dijkstra para optimizar kilómetros, costo o tiempo.";
         return report;
     }
 }

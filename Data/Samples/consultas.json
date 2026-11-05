@@ -1,0 +1,233 @@
+[
+  {
+    "option": "hash",
+    "input": "UFG-DEMO-001",
+    "expected": true
+  },
+  {
+    "option": "hash",
+    "input": "UFG-DEMO-010",
+    "expected": true
+  },
+  {
+    "option": "hash",
+    "input": "UFG-DEMO-030",
+    "expected": true
+  },
+  {
+    "option": "hash",
+    "input": "NO-EXISTE",
+    "expected": false
+  },
+  {
+    "option": "hash",
+    "input": "UFG-DEMO-031",
+    "expected": false
+  },
+  {
+    "option": "prefix",
+    "input": "san",
+    "expected": 6
+  },
+  {
+    "option": "prefix",
+    "input": "co", "expected": 3
+  },
+  {
+    "option": "prefix",
+    "input": "gén",
+    "expected": 1
+  },
+  {
+    "option": "prefix",
+    "input": "sal",
+    "expected": 1
+  },
+  {
+    "option": "prefix",
+    "input": "zzz",
+    "expected": 0
+  },
+  {
+    "option": "bfs",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "bfs",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "bfs",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "bfs",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "bfs",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  },
+  {
+    "option": "dfs",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "dfs",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "dfs",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "dfs",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "dfs",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  },
+  {
+    "option": "distance",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "distance",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "distance",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "distance",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "distance",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  },
+  {
+    "option": "cost",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "cost",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "cost",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "cost",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "cost",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  },
+  {
+    "option": "time",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "time",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "time",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "time",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "time",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  },
+  {
+    "option": "connectivity",
+    "input": "QUE",
+    "to": "COA",
+    "expected": true
+  },
+  {
+    "option": "connectivity",
+    "input": "CAB",
+    "to": "CAN",
+    "expected": true
+  },
+  {
+    "option": "connectivity",
+    "input": "GEN",
+    "to": "SAL",
+    "expected": true
+  },
+  {
+    "option": "connectivity",
+    "input": "QUE",
+    "to": "QUE",
+    "expected": true
+  },
+  {
+    "option": "connectivity",
+    "input": "QUE",
+    "to": "NO",
+    "expected": false
+  }
+]
+
+

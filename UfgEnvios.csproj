@@ -14,6 +14,7 @@
   <ItemGroup>
     <Resource Include="imagen ejemplo.jpg" />
     <Compile Remove="Tests/**/*.cs" />
+    <Content Include="Data/Samples/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

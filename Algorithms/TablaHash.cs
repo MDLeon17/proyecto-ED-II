@@ -1,6 +1,7 @@
 using UfgEnvios.Models;
 namespace UfgEnvios.Algorithms;
 
+// Módulo original de tabla hash: Gerardo Rivera (ver docs/APORTES.md).
 public class TablaHash
 {
     private class Nodo
@@ -20,14 +21,16 @@ public class TablaHash
 
     private int Hash(string clave)
     {
-        int resultado = 0;
+        uint resultado = 0;
         foreach (char letra in clave)
-            resultado = (resultado * 31 + letra) % _cubetas.Length;
-        return resultado;
+            resultado = (resultado * 31 + letra) % (uint)_cubetas.Length;
+        return (int)resultado;
     }
 
     public bool Insertar(Pedido pedido)
     {
+        ArgumentNullException.ThrowIfNull(pedido);
+        if (string.IsNullOrWhiteSpace(pedido.Guia)) throw new ArgumentException("La guía es obligatoria.");
         if (Buscar(pedido.Guia) != null) return false; // LA guia repetida
 
         if (Cantidad >= _cubetas.Length * 3 / 4) Redimensionar();
@@ -72,9 +75,9 @@ public class TablaHash
         return false;
     }
 
-    public List<Pedido> ObtenerTodos()
+    public ListaDinamica<Pedido> ObtenerTodos()
     {
-        var lista = new List<Pedido>();
+        var lista = new ListaDinamica<Pedido>();
         foreach (var cubeta in _cubetas)
         {
             var actual = cubeta;
