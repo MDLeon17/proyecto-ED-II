@@ -26,6 +26,12 @@ internal static class CoreChecks
         for (int i = 0; i < 2000; i++) hash.Insertar(new Pedido { Guia = $"GUIA-{i}" });
         for (int i = 0; i < 2000; i++) Check(hash.Buscar($"GUIA-{i}")?.Guia == $"GUIA-{i}", "Rehash conserva guías.");
         Check(!hash.Insertar(new Pedido { Guia = "Aa" }) && !hash.Eliminar("INEXISTENTE"), "Duplicados y ausentes.");
+        var words = new TablaDispersion<string, int>();
+        for (int i = 0; i < 5000; i++) words.Add($"MUNI-{i}", i);
+        for (int i = 0; i < 5000; i++) Check(words[$"MUNI-{i}"] == i, "Hash propio de texto conserva claves.");
+        var letters = new TablaDispersion<char, int>();
+        foreach (char c in "ÁBCÑ0 z") letters.Add(c, c);
+        foreach (char c in "ÁBCÑ0 z") Check(letters[c] == c, "Hash propio de carácter.");
         var table = new TablaDispersion<int, int>();
         for (int i = -500; i < 500; i++) table.Add(i, i * 2);
         Check(table.Count == 1000 && table[-500] == -1000 && table.Remove(0) && !table.ContainsKey(0), "Dispersión con hash negativo y crecimiento.");

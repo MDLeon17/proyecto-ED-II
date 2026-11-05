@@ -55,7 +55,7 @@ Sea V la cantidad de municipios, E la cantidad de arcos, N la cantidad de paquet
 | Estructura u operación | Implementación y costo |
 |---|---|
 | `TablaHash` | Arreglo de cubetas con cadenas de nodos enlazados. Hash polinómico base 31 sobre la guía. Inserción, búsqueda y eliminación O(L) para calcular el hash más O(1) esperado por cubeta; peor caso O(L + N). Crece al alcanzar una carga de 0.75 y redistribuye los nodos. Espacio O(N + cubetas). |
-| `TablaDispersion<TKey,TValue>` | Tabla genérica propia con encadenamiento; usa igualdad y función hash del tipo de clave. Índices de municipios, predecesores, marcadores y contornos. O(1) esperado, O(N) peor caso, sin contar el cálculo del hash. |
+| `TablaDispersion<TKey,TValue>` | Tabla genérica propia con encadenamiento; usa una función hash propia (polinomio base 131 para texto, multiplicación por constante para int y char) y solo compara igualdad con el comparador de .NET. Índices de municipios, predecesores, marcadores y contornos. O(1) esperado, O(N) peor caso, sin contar el cálculo del hash. |
 | `ListaDinamica<T>` | Arreglo propio que duplica capacidad. Agregar O(1) amortizado; insertar/eliminar en medio O(N); acceso O(1). Implementa `IList<T>` y notificaciones para enlazar con WPF. |
 | `Cola<T>` | Nodos enlazados con frente y final; encolar/desencolar O(1). Se usa en BFS y en el procesamiento del mapa. |
 | `Conjunto<T>` | Se apoya en la tabla de dispersión propia para controlar visitas y duplicados. |
