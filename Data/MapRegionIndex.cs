@@ -167,6 +167,15 @@ public sealed class MapRegionIndex
         }
     }
 
+    public string? FindNodeIdAt(Point point)
+    {
+        if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) ||
+            point.X < 0 || point.X >= Width || point.Y < 0 || point.Y >= Height) return null;
+        foreach (var (id, contour) in _contours)
+            if (contour.FillContains(point)) return id;
+        return null;
+    }
+
     public DrawingImage CreateMap(HubNode? origin, HubNode? destination, bool shadeOthers)
     {
         var drawing = new DrawingGroup();

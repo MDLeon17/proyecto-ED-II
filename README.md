@@ -18,9 +18,10 @@ Al iniciar se carga `Data/Samples/logistica.json`, copiado automáticamente a la
 - **Envío:** selecciona un paquete registrado y pulsa Simular envío. El botón **⋮** permite elegir BFS, DFS, comparación paralela o Dijkstra; para Dijkstra se elige Distancia, Costo o Tiempo.
 - **Historial:** conserva las simulaciones completadas durante la sesión, con ambas personas y el método usado.
 - **Consultas y datos:** busca una guía, escribe un prefijo como `san` o `gén`, consulta BFS/DFS/Dijkstra o verifica los grupos y la disponibilidad dirigida de una ruta. La búsqueda de guía selecciona el paquete para simularlo en Envío.
+- **Editar grafos:** abre una ventana desde el menú ☰. Haz clic en dos municipios para agregar una conexión unidireccional o bidireccional y su distancia simulada. Selecciona una línea o una fila para cambiar el sentido o eliminarla; los recorridos y la conectividad se actualizan inmediatamente.
 - **Reemplazar datos desde JSON:** carga otro conjunto completo. Primero valida los datos y los contornos; si falla, conserva la sesión actual. Si tiene éxito, reemplaza los envíos y vacía el historial.
 
-Los registros y los cambios de estado se mantienen **en memoria**. Al cerrar y abrir, se vuelve a cargar el JSON; no se guarda automáticamente sobre el archivo.
+Los registros, los cambios de estado y las conexiones editadas se mantienen **en memoria**. Al cerrar y abrir, se vuelve a cargar el JSON; no se guarda automáticamente sobre el archivo.
 
 ## Estructuras integradas
 
@@ -49,7 +50,7 @@ dotnet build UfgEnvios.sln -c Release
 dotnet run --project Tests/MapRegionCheck.csproj -c Release -- "imagen ejemplo.jpg" "artifacts/Verificacion.png"
 ```
 
-La suite comprueba estructuras, datos inválidos, las 40 consultas, rutas dirigidas, pesos cero, municipios aislados y los óptimos de Dijkstra para los 576 pares de municipios y los tres pesos, usando Floyd-Warshall como referencia independiente. También prueba el registro, los contornos, la búsqueda visible, el Trie y las animaciones BFS/DFS y Dijkstra. Genera capturas en `artifacts/`.
+La suite comprueba estructuras, datos inválidos, las 40 consultas, rutas dirigidas, pesos cero, municipios aislados y los óptimos de Dijkstra para los 576 pares de municipios y los tres pesos, usando Floyd-Warshall como referencia independiente. También prueba el editor de grafos (clics, altas, cambios de sentido y bajas), el registro, los contornos, la búsqueda visible, el Trie y las animaciones BFS/DFS y Dijkstra. Genera capturas en `artifacts/`.
 
 ## Documentación
 

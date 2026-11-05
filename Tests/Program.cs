@@ -21,8 +21,23 @@ internal static class Program
         var regions = new MapRegionIndex(image, nodes);
         var app = new UfgEnvios.App();
         app.InitializeComponent();
+        app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         var packagedImage = new BitmapImage(new Uri("pack://application:,,,/UfgEnvios;component/imagen%20ejemplo.jpg", UriKind.Absolute));
         _ = new MapRegionIndex(packagedImage, nodes);
+        foreach (var node in nodes)
+            if (regions.FindNodeIdAt(new Point(node.RegionX, node.RegionY)) != node.Id)
+                throw new Exception($"El clic en el municipio no identifica {node.Name}.");
+        if (regions.FindNodeIdAt(new Point(-1, 0)) != null || regions.FindNodeIdAt(new Point(775, 780)) != null)
+            throw new Exception("El mapa acepta clics fuera de sus límites.");
+        var graphEditor = GraphEditorChecks.Run(nodes, regions);
+        if (args.Length == 2)
+        {
+            SavePreview((FrameworkElement)graphEditor.Content, Path.ChangeExtension(args[1], ".grafos.png"), 1280, 840);
+            ((ListBox)graphEditor.FindName("ListEdges")).SelectedIndex = 0;
+            SavePreview((FrameworkElement)graphEditor.Content, Path.ChangeExtension(args[1], ".grafos-editar.png"), 1280, 840);
+            SavePreview((FrameworkElement)graphEditor.Content, Path.ChangeExtension(args[1], ".grafos-minimo.png"), 1080, 680);
+        }
+        graphEditor.Close();
         foreach (var node in nodes)
         {
             var mask = regions.CreateOverlay(node, null, false)!;
@@ -59,6 +74,8 @@ internal static class Program
         var navigation = (System.Windows.Controls.Primitives.Popup)window.FindName("NavigationMenu")!;
         var registrationNavigation = (RadioButton)window.FindName("NavRegistration")!;
         var simulationNavigation = (RadioButton)window.FindName("NavSimulation")!;
+        if (window.FindName("NavGraphEditor") is not Button { IsEnabled: true })
+            throw new Exception("El menú no contiene la opción Editar grafos.");
         if (simulationView.Visibility != Visibility.Collapsed || registrationView.Visibility != Visibility.Visible)
             throw new Exception("La pantalla inicial no es el registro.");
         registrationNavigation.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -122,6 +139,8 @@ internal static class Program
         destination.SelectedItem = destination.Items.Cast<HubNode>().First(node => node.Id == "SAL");
         ((Slider)window.FindName("SliderSpeed")!).Value = 4;
         ((Button)window.FindName("BtnDispatch")!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (((Button)window.FindName("NavGraphEditor")!).IsEnabled)
+            throw new Exception("El editor de grafos debe estar deshabilitado durante la animación.");
         var bfsStatus = (TextBlock)window.FindName("TxtBfsMapStatus")!;
         var dfsStatus = (TextBlock)window.FindName("TxtDfsMapStatus")!;
         if (!bfsStatus.Text.StartsWith("0/") || !dfsStatus.Text.StartsWith("0/"))
@@ -141,6 +160,8 @@ internal static class Program
         if (timedOut || ((ProgressBar)window.FindName("BfsProgress")!).Value != 100 ||
             ((ProgressBar)window.FindName("DfsProgress")!).Value != 100)
             throw new Exception("La comparativa en paralelo no terminó correctamente.");
+        if (!((Button)window.FindName("NavGraphEditor")!).IsEnabled)
+            throw new Exception("El editor de grafos no se habilitó al finalizar la animación.");
         var delivered = ((ComboBox)window.FindName("ListPedidos")!).Items.Cast<Pedido>().Single(p => p.Guia == registeredGuide);
         if (delivered.Guia != registeredGuide || delivered.Estado != EstadoPedido.Entregado)
             throw new Exception("La simulación no actualizó el pedido de la tabla hash.");

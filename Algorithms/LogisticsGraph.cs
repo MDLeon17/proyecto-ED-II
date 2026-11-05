@@ -41,6 +41,43 @@ public class LogisticsGraph
         _components = null;
     }
 
+    // Cada conexión bidireccional se representa una sola vez; las dirigidas son independientes.
+    public IEnumerable<RouteEdge> GetRoutes() => AdjacencyList.Values.SelectMany(edges => edges)
+        .Where(edge => !edge.Bidirectional || string.CompareOrdinal(edge.FromId, edge.ToId) < 0);
+
+    public void SetEdgeDirection(string fromId, string toId, bool bidirectional)
+    {
+        var edge = GetEdge(fromId, toId)
+            ?? throw new ArgumentException("La conexión seleccionada ya no existe.");
+        if (edge.Bidirectional == bidirectional) return;
+        var reverse = GetEdge(toId, fromId);
+        if (bidirectional)
+        {
+            if (reverse != null)
+                throw new ArgumentException("Ya existe otra conexión en sentido contrario. Elimínala antes de convertir esta conexión en bidireccional.");
+            AdjacencyList[toId].Add(new RouteEdge
+            {
+                FromId = toId, ToId = fromId, DistanceKm = edge.DistanceKm, Mode = edge.Mode,
+                Cost = edge.Cost, EstimatedHours = edge.EstimatedHours, Bidirectional = true
+            });
+        }
+        else if (reverse != null)
+            AdjacencyList[toId].Remove(reverse);
+        edge.Bidirectional = bidirectional;
+        _components = null;
+    }
+
+    public bool RemoveEdge(string fromId, string toId)
+    {
+        var edge = GetEdge(fromId, toId);
+        if (edge == null) return false;
+        AdjacencyList[fromId].Remove(edge);
+        if (edge.Bidirectional && GetEdge(toId, fromId) is RouteEdge reverse)
+            AdjacencyList[toId].Remove(reverse);
+        _components = null;
+        return true;
+    }
+
     public int ComponentCount { get { EnsureComponents(); return _components!.ComponentCount; } }
     public bool AreWeaklyConnected(string a, string b)
     {

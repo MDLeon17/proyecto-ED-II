@@ -154,6 +154,7 @@ public partial class MainWindow : Window
 
         _initialized = true;
         ConfigurarConsultas();
+        ConfigurarEditorGrafos();
 
         GenerateTrackingNumber();
         GenerateRegistrationTrackingNumber();
@@ -519,17 +520,8 @@ public partial class MainWindow : Window
             canvas.Children.Add(tint);
         }
 
-        var drawn = new Conjunto<string>();
-
-        foreach (var edges in _graph.AdjacencyList.Values)
-        foreach (var edge in edges)
+        foreach (var edge in _graph.GetRoutes())
         {
-            var key = string.CompareOrdinal(edge.FromId, edge.ToId) < 0
-                ? $"{edge.FromId}:{edge.ToId}"
-                : $"{edge.ToId}:{edge.FromId}";
-
-            if (!drawn.Add(key)) continue;
-
             var from = _graph.Nodes[edge.FromId];
             var to = _graph.Nodes[edge.ToId];
 
@@ -549,15 +541,8 @@ public partial class MainWindow : Window
             canvas.Children.Add(road);
             if (!edge.Bidirectional)
             {
-                var arrow = new TextBlock
-                {
-                    Text = "➤", FontSize = 15, Foreground = new SolidColorBrush(RoadColor),
-                    ToolTip = road.ToolTip,
-                    RenderTransform = new RotateTransform(Math.Atan2(to.Y - from.Y, to.X - from.X) * 180 / Math.PI, 7, 7)
-                };
-                var control = ControlPoint(from, to);
-                Canvas.SetLeft(arrow, (from.X + 2 * control.X + to.X) / 4 - 7);
-                Canvas.SetTop(arrow, (from.Y + 2 * control.Y + to.Y) / 4 - 7);
+                var arrow = CreateDirectionArrow(from, to, RoadColor);
+                arrow.ToolTip = road.ToolTip;
                 Panel.SetZIndex(arrow, 4);
                 canvas.Children.Add(arrow);
             }
@@ -594,7 +579,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static Border CreateMarker(HubNode node) => new()
+    internal static Border CreateMarker(HubNode node) => new()
     {
         Width = 30,
         Height = 30,
@@ -672,7 +657,7 @@ public partial class MainWindow : Window
         return geometry;
     }
 
-    private static Path CreateRoad(
+    internal static Path CreateRoad(
         HubNode from,
         HubNode to,
         Color color,
@@ -686,6 +671,22 @@ public partial class MainWindow : Window
         StrokeLineJoin = PenLineJoin.Round,
         IsHitTestVisible = false
     };
+
+    internal static TextBlock CreateDirectionArrow(HubNode from, HubNode to, Color color)
+    {
+        const double t = 0.65;
+        var control = ControlPoint(from, to);
+        var tangent = new Point((1 - t) * (control.X - from.X) + t * (to.X - control.X),
+            (1 - t) * (control.Y - from.Y) + t * (to.Y - control.Y));
+        var arrow = new TextBlock
+        {
+            Text = "➤", FontSize = 15, Foreground = new SolidColorBrush(color),
+            RenderTransform = new RotateTransform(Math.Atan2(tangent.Y, tangent.X) * 180 / Math.PI, 7, 7)
+        };
+        Canvas.SetLeft(arrow, (1 - t) * (1 - t) * from.X + 2 * (1 - t) * t * control.X + t * t * to.X - 7);
+        Canvas.SetTop(arrow, (1 - t) * (1 - t) * from.Y + 2 * (1 - t) * t * control.Y + t * t * to.Y - 7);
+        return arrow;
+    }
 
     private static void PrepareRoute(
         MapSurface surface,
@@ -1155,6 +1156,7 @@ public partial class MainWindow : Window
         RbDijkstra.IsEnabled = enabled;
         CboWeight.IsEnabled = enabled;
         _navConsultas.IsEnabled = enabled;
+        _navGraphEditor.IsEnabled = enabled;
         RbCompare.IsEnabled = enabled;
 
         ListPedidos.IsEnabled = enabled;

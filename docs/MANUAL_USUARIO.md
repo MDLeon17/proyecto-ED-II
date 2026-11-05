@@ -4,7 +4,7 @@
 
 Abre `UfgEnvios.sln` en Visual Studio y ejecuta con F5, o usa `dotnet run --project UfgEnvios.csproj` desde la carpeta del proyecto. Se necesita Windows y .NET 8 o un SDK compatible con ese destino.
 
-La pantalla inicial es **Registro**. Ya hay 30 paquetes de prueba. El menú ☰ permite cambiar entre Registro, Envío, Historial y Consultas y datos. La ventana admite un tamaño mínimo de 1200×720.
+La pantalla inicial es **Registro**. Ya hay 30 paquetes de prueba. El menú ☰ permite cambiar entre Registro, Envío, Historial y Consultas y datos, y abrir la ventana **Editar grafos**. La ventana principal admite un tamaño mínimo de 1200×720.
 
 ## Registrar un paquete
 
@@ -35,6 +35,20 @@ Los datos incompletos muestran un aviso en el formulario. Una guía repetida no 
 7. **Limpiar recorrido** borra la presentación. Durante un recorrido también permite cancelarlo; el paquete conserva el estado que tenía antes de iniciar esa simulación.
 
 Las flechas pequeñas indican conexiones de un solo sentido. Pasa el cursor sobre una conexión para consultar sus pesos. Los colores distinguen origen, destino y recorrido. Todos los pesos son datos simulados.
+
+## Agregar, editar y eliminar conexiones del grafo
+
+1. Abre **☰ → Editar grafos**. Se abre una ventana con el mapa y las conexiones actuales.
+2. Pulsa **Nueva conexión** y haz clic en el municipio de origen y después en uno de destino. Puedes pulsar el número o el interior del municipio.
+3. Elige **Unidireccional** (solo origen → destino) o **Bidireccional** (ida y vuelta).
+4. Ingresa la distancia simulada en kilómetros, con punto o coma decimal, y pulsa **Agregar conexión**. El costo y el tiempo se calculan con la misma estimación de las demás rutas. Se admite distancia cero.
+5. Para editar, selecciona una línea del mapa o una fila de la lista, elige el sentido y pulsa **Guardar sentido**. La distancia, el costo y el tiempo se conservan.
+6. Para elegir qué sentido conservar al convertir una conexión bidireccional en unidireccional, pulsa **Nueva conexión** y selecciona primero el origen deseado y después el destino. La conexión existente se abre para editarla.
+7. Para eliminar una conexión seleccionada, pulsa **Eliminar**. Si es bidireccional, se eliminan ambos sentidos. Si son dos conexiones unidireccionales independientes, se elimina solamente la seleccionada.
+
+El editor impide conectar un municipio consigo mismo y duplicar un sentido existente. Si ya existe una conexión independiente en el sentido contrario, debes eliminarla antes de convertir la seleccionada en bidireccional. La lista permite seleccionar cada una de las dos conexiones independientes.
+
+Los cambios se aplican inmediatamente a BFS, DFS, Dijkstra, los mapas y los grupos de conectividad. Durante una animación se deshabilita la entrada al editor; puedes abrirlo al terminar o cancelar el recorrido. Cierra la ventana para volver a la pantalla anterior. Las conexiones editadas duran durante la sesión y no se guardan sobre el JSON.
 
 ## Buscar por guía
 

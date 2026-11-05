@@ -61,6 +61,7 @@ internal static class CoreChecks
         }
         try { small.AddEdge("E", "A", -1, TransportMode.Ground); throw new Exception("Se aceptó peso negativo."); }
         catch (ArgumentException) { _checks++; }
+        ValidateGraphEditing();
 
         // Floyd-Warshall usa una matriz independiente para contrastar todos los pares y pesos.
         var nodes = graph.Nodes.Values.OrderBy(n => n.Id).ToArray();
@@ -103,6 +104,50 @@ internal static class CoreChecks
         Near(result.TotalDistanceKm, km, "Distancia acumulada.");
         Near(result.TotalCost, Math.Round(cost, 2), "Costo acumulado.");
         Near(result.TotalEstimatedHours, Math.Round(hours, 2), "Tiempo acumulado.");
+    }
+
+    private static void ValidateGraphEditing()
+    {
+        var graph = new LogisticsGraph();
+        foreach (var id in new[] { "A", "B", "C" }) graph.AddNode(new HubNode { Id = id, Name = id });
+        Check(graph.ComponentCount == 3, "Tres municipios aislados antes de agregar conexiones.");
+        graph.AddEdge("A", "B", 12, TransportMode.Ground, false, 7, 2);
+        Check(graph.ComponentCount == 2 && graph.GetRoutes().Count() == 1, "Agregar actualiza conectividad y conexiones únicas.");
+        foreach (var run in new Func<string, string, TraversalResult>[] { graph.RunBFS, graph.RunDFS, (a,b) => graph.RunDijkstra(a,b) })
+            Check(run("A", "B").Success && !run("B", "A").Success, "Nueva arista respeta el sentido en todos los recorridos.");
+        graph.SetEdgeDirection("A", "B", true);
+        Check(graph.GetRoutes().Count() == 1 && graph.AdjacencyList.Values.Sum(edges => edges.Count) == 2,
+            "Convertir a bidireccional agrega exactamente el arco inverso.");
+        var reverse = graph.GetEdge("B", "A")!;
+        Check(reverse.Bidirectional && reverse.DistanceKm == 12 && reverse.Cost == 7 && reverse.EstimatedHours == 2,
+            "La edición conserva todos los pesos en el sentido inverso.");
+        foreach (var run in new Func<string, string, TraversalResult>[] { graph.RunBFS, graph.RunDFS, (a,b) => graph.RunDijkstra(a,b) })
+            Check(run("B", "A").Success, "Todos los recorridos usan el nuevo sentido inverso.");
+        graph.SetEdgeDirection("A", "B", true);
+        Check(graph.AdjacencyList["B"].Count == 1, "Repetir la edición no duplica arcos.");
+        graph.SetEdgeDirection("B", "A", false);
+        Check(graph.GetEdge("A", "B") == null && graph.GetEdge("B", "A") is { Bidirectional: false },
+            "Al convertir desde el inverso se conserva el sentido seleccionado.");
+        Check(graph.RemoveEdge("B", "A") && graph.ComponentCount == 3 && !graph.AreWeaklyConnected("A", "B"),
+            "Eliminar invalida Union-Find y separa grupos.");
+        Check(!graph.RemoveEdge("B", "A") && !graph.RemoveEdge("NO", "A"), "Eliminar conexiones ausentes no altera el grafo.");
+        graph.AddEdge("A", "B", 1, TransportMode.Ground);
+        Check(graph.RemoveEdge("B", "A") && graph.GetRoutes().Count() == 0 && graph.GetEdge("A", "B") == null,
+            "Eliminar una bidireccional desde el inverso borra ambos arcos.");
+        graph.AddEdge("A", "B", 1, TransportMode.Ground, false);
+        graph.AddEdge("B", "A", 4, TransportMode.Ground, false);
+        try { graph.SetEdgeDirection("A", "B", true); throw new Exception("Se sobrescribió una conexión inversa independiente."); }
+        catch (ArgumentException) { _checks++; }
+        Check(graph.GetRoutes().Count() == 2 && graph.GetEdge("A", "B") is { Bidirectional: false, DistanceKm: 1 } &&
+            graph.GetEdge("B", "A") is { Bidirectional: false, DistanceKm: 4 }, "Un conflicto no modifica ninguna conexión.");
+        Check(graph.RemoveEdge("A", "B") && graph.GetEdge("B", "A") != null && graph.ComponentCount == 2,
+            "Eliminar una dirigida conserva la inversa independiente y la conectividad.");
+        graph.RemoveEdge("B", "A");
+        graph.AddEdge("A", "B", 0, TransportMode.Ground, false, 0, 0);
+        graph.SetEdgeDirection("A", "B", true);
+        Near(graph.RunDijkstra("B", "A").TotalDistanceKm, 0, "Editar permite pesos cero.");
+        try { graph.SetEdgeDirection("C", "A", true); throw new Exception("Se editó una conexión inexistente."); }
+        catch (ArgumentException) { _checks++; }
     }
     private static void RunQueries(LoadedLogisticsData data)
     {

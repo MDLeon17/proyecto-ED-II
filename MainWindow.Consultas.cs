@@ -140,9 +140,14 @@ public partial class MainWindow
         _consultaOrigen.SelectedItem = nodes.FirstOrDefault(n => n.Id == "QUE") ?? nodes[0];
         _consultaDestino.SelectedItem = nodes.FirstOrDefault(n => n.Id == "SAL") ?? nodes[0];
         _sugerencias.ItemsSource = _graph.NameIndex.Search(_consultaPrefijo.Text);
+        ActualizarResumenDatos();
+    }
+
+    private void ActualizarResumenDatos()
+    {
         int arcs = _graph.AdjacencyList.Values.Sum(e => e.Count);
         int oneWay = _graph.AdjacencyList.Values.SelectMany(e => e).Count(e => !e.Bidirectional);
-        _datosResumen.Text = $"{nodes.Length} municipios · {_pedidos.Cantidad} envíos\n{arcs} arcos ({oneWay} de un sentido) · {_graph.ComponentCount} grupo(s)";
+        _datosResumen.Text = $"{_graph.Nodes.Count} municipios · {_pedidos.Cantidad} envíos\n{arcs} arcos ({oneWay} de un sentido) · {_graph.ComponentCount} grupo(s)";
     }
 
     private void BuscarGuia_Click(object sender, RoutedEventArgs e)
